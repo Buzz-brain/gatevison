@@ -1,0 +1,315 @@
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import {
+  BrainCircuit, ShieldCheck, AlertTriangle, Users, Car, Activity,
+  TrendingUp, Target, Eye, Zap, Fingerprint, ScanLine,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+
+interface IntelMetric {
+  label: string;
+  value: string;
+  trend: "up" | "down" | "stable";
+  pct: number;
+  icon: typeof BrainCircuit;
+}
+
+interface ThreatSignal {
+  id: string;
+  type: "anomaly" | "breach_attempt" | "policy_violation" | "spoof_detected";
+  severity: "critical" | "high" | "medium" | "low";
+  title: string;
+  description: string;
+  timestamp: string;
+}
+
+interface IdentityCluster {
+  id: string;
+  label: string;
+  count: number;
+  color: string;
+  active: boolean;
+}
+
+function useLiveTick(intervalMs = 3000) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return tick;
+}
+
+const METRICS: IntelMetric[] = [
+  { label: "Verification Rate", value: "98.4%", trend: "up", pct: 98.4, icon: ShieldCheck },
+  { label: "Avg Confidence", value: "96.2%", trend: "up", pct: 96.2, icon: Eye },
+  { label: "Active Sessions", value: "1,847", trend: "up", pct: 78, icon: Activity },
+  { label: "Threat Detections", value: "12", trend: "down", pct: 12, icon: AlertTriangle },
+  { label: "Enrollment Rate", value: "94.2%", trend: "stable", pct: 94.2, icon: Users },
+  { label: "Recognition QOS", value: "97.1%", trend: "up", pct: 97.1, icon: Target },
+];
+
+const THREAT_SIGNALS: ThreatSignal[] = [
+  { id: "ts-1", type: "anomaly", severity: "high", title: "Unusual Access Pattern", description: "Driver Alex Drake accessed North Gate 12x in 2 hours (baseline: 5x/day)", timestamp: "2m ago" },
+  { id: "ts-2", type: "spoof_detected", severity: "critical", title: "Spoof Attempt Blocked", description: "Facial recognition liveness check failed at Gate B for unknown subject", timestamp: "15m ago" },
+  { id: "ts-3", type: "policy_violation", severity: "medium", title: "After-Hours Access", description: "Vehicle veh-007 attempted entry at Service Gate outside permitted schedule", timestamp: "1h ago" },
+  { id: "ts-4", type: "breach_attempt", severity: "high", title: "Repeated Auth Failure", description: "3 consecutive verification failures for employee ID EMP-7781 at Main Gate", timestamp: "2h ago" },
+  { id: "ts-5", type: "anomaly", severity: "low", title: "New Device Fingerprint", description: "Vehicle fingerprint mismatch for veh-003 - possible repaint detected", timestamp: "4h ago" },
+];
+
+const CLUSTERS: IdentityCluster[] = [
+  { id: "c1", label: "Verified", count: 1247, color: "bg-success", active: true },
+  { id: "c2", label: "VIP", count: 89, color: "bg-primary", active: true },
+  { id: "c3", label: "Contractor", count: 234, color: "bg-warning", active: true },
+  { id: "c4", label: "Visitor", count: 156, color: "bg-info", active: true },
+  { id: "c5", label: "Suspended", count: 12, color: "bg-danger", active: true },
+  { id: "c6", label: "Pending", count: 28, color: "bg-muted-foreground", active: true },
+];
+
+function severityColor(s: string): string {
+  switch (s) {
+    case "critical": return "border-danger/50 bg-danger/10 text-danger";
+    case "high": return "border-warning/50 bg-warning/10 text-warning";
+    case "medium": return "border-info/50 bg-info/10 text-info";
+    default: return "border-border bg-surface text-muted-foreground";
+  }
+}
+
+function threatIcon(type: string) {
+  switch (type) {
+    case "anomaly": return Activity;
+    case "breach_attempt": return AlertTriangle;
+    case "policy_violation": return ShieldCheck;
+    case "spoof_detected": return Eye;
+    default: return AlertTriangle;
+  }
+}
+
+function IdentityIntelligencePanel() {
+  const prefersReduced = useReducedMotion();
+  const tick = useLiveTick(4000);
+  const [activeCluster, setActiveCluster] = useState<string | null>(null);
+  const [scanActive, setScanActive] = useState(true);
+
+  const radarRef = useRef<HTMLDivElement>(null);
+
+  const animatedMetrics = METRICS.map((m, i) => ({
+    ...m,
+    currentPct: Math.min(m.pct, (tick % 20) * 5 + Math.sin(tick * 0.5 + i) * 3),
+  }));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60">
+            <BrainCircuit className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium">Identity Intelligence</h3>
+            <p className="text-[10px] text-muted-foreground/60">AI-powered identity analytics & threat detection</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={scanActive ? "success" : "neutral"}>
+            <Zap className="mr-1 h-3 w-3" />
+            {scanActive ? "Live" : "Paused"}
+          </Badge>
+          <button
+            onClick={() => setScanActive(!scanActive)}
+            className="flex h-6 w-6 items-center justify-center rounded-md border border-border text-[10px] text-muted-foreground hover:bg-surface"
+          >
+            {scanActive ? "||" : ">"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-6 gap-2">
+        {animatedMetrics.map((m) => {
+          const Icon = m.icon;
+          return (
+            <Card key={m.label} className={cn("p-3 transition-all", scanActive && "hover:border-primary/30")}>
+              <div className="flex items-center gap-1.5">
+                <Icon className="h-3 w-3 text-muted-foreground/60" />
+                <span className="text-[10px] text-muted-foreground/60">{m.label}</span>
+              </div>
+              <p className="mt-1 text-lg font-semibold tabular-nums">{m.value}</p>
+              <div className="mt-1.5 h-1 rounded-full bg-border">
+                <motion.div
+                  className={cn("h-full rounded-full", m.trend === "up" ? "bg-success" : m.trend === "down" ? "bg-danger" : "bg-primary")}
+                  animate={prefersReduced ? {} : { width: `${m.currentPct}%` }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                />
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-danger" />
+            <span className="text-xs font-medium">Threat Signals</span>
+            <Badge variant="danger" className="ml-auto text-[10px]">{THREAT_SIGNALS.length} Active</Badge>
+          </div>
+          <div className="space-y-2">
+            {THREAT_SIGNALS.map((ts, i) => {
+              const Icon = threatIcon(ts.type);
+              return (
+                <motion.div
+                  key={ts.id}
+                  initial={prefersReduced ? {} : { opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <Card className={cn("flex items-start gap-3 border-l-2 p-3", severityColor(ts.severity).split(" ")[0] || "border-border")}>
+                    <div className={cn("flex h-7 w-7 items-center justify-center rounded-full", severityColor(ts.severity).split(" ")[1] || "bg-surface")}>
+                      <Icon className={cn("h-3.5 w-3.5", severityColor(ts.severity).split(" ")[2] || "text-muted-foreground")} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">{ts.title}</span>
+                        <Badge variant={ts.severity === "critical" ? "danger" : ts.severity === "high" ? "warning" : ts.severity === "medium" ? "info" : "neutral"} className="text-[9px]">
+                          {ts.severity}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground/70">{ts.description}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground/50">{ts.timestamp}</p>
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <Card className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <ScanLine className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium">Identity Radar</span>
+              <span className="text-[10px] text-muted-foreground/50">Real-time cluster analysis</span>
+            </div>
+            <div ref={radarRef} className="relative flex h-48 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface/50">
+              <div className="absolute inset-0">
+                <svg viewBox="0 0 200 200" className="h-full w-full opacity-20">
+                  <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
+                  <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
+                  <circle cx="100" cy="100" r="30" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
+                  <line x1="10" y1="100" x2="190" y2="100" stroke="currentColor" strokeWidth="0.3" className="text-border" />
+                  <line x1="100" y1="10" x2="100" y2="190" stroke="currentColor" strokeWidth="0.3" className="text-border" />
+                </svg>
+              </div>
+              {scanActive && (
+                <motion.div
+                  className="absolute left-1/2 top-1/2 h-0.5 w-24 origin-left bg-gradient-to-r from-transparent via-primary to-transparent"
+                  animate={prefersReduced ? {} : { rotate: 360 }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  style={{ x: 0, y: 0 }}
+                />
+              )}
+              {CLUSTERS.map((c, i) => {
+                const angle = (i / CLUSTERS.length) * Math.PI * 2;
+                const radius = 30 + Math.sin(tick * 0.02 + i * 1.2) * 20 + 20;
+                const x = 100 + Math.cos(angle + tick * 0.005) * radius;
+                const y = 100 + Math.sin(angle + tick * 0.005) * radius;
+                return (
+                  <motion.div
+                    key={c.id}
+                    className={cn(
+                      "absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[9px] font-bold text-white transition-opacity",
+                      c.color,
+                      activeCluster && activeCluster !== c.id && "opacity-30",
+                    )}
+                    animate={prefersReduced ? {} : { x: x - 100, y: y - 100 }}
+                    transition={{ duration: 2, ease: "easeInOut" }}
+                    onClick={() => setActiveCluster(activeCluster === c.id ? null : c.id)}
+                    style={{ left: 100, top: 100 }}
+                  >
+                    {c.count}
+                    <div className="absolute -bottom-4 whitespace-nowrap text-[8px] text-muted-foreground">{c.label}</div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium">Identity Profile Distribution</span>
+          </div>
+          <Card className="p-4">
+            <div className="space-y-2">
+              {CLUSTERS.map((c) => {
+                const total = CLUSTERS.reduce((s, x) => s + x.count, 0);
+                const pct = ((c.count / total) * 100).toFixed(1);
+                return (
+                  <div key={c.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground/70">{c.label}</span>
+                      <span className="font-medium tabular-nums">{c.count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-border">
+                      <motion.div
+                        className={cn("h-full rounded-full", c.color)}
+                        initial={prefersReduced ? {} : { width: "0%" }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: CLUSTERS.indexOf(c) * 0.1 }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground/50">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Fingerprint className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium">Biometric Health</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: "Face Enrollment", value: 96.8, color: "bg-success" },
+                { label: "Vehicle FP", value: 94.2, color: "bg-primary" },
+                { label: "Liveness Detection", value: 99.1, color: "bg-success" },
+                { label: "Match Accuracy", value: 97.5, color: "bg-primary" },
+              ].map((item) => (
+                <div key={item.label}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground/70">{item.label}</span>
+                    <span className="font-medium tabular-nums">{item.value}%</span>
+                  </div>
+                  <div className="mt-0.5 h-1.5 rounded-full bg-border">
+                    <motion.div
+                      className={cn("h-full rounded-full", item.color)}
+                      initial={prefersReduced ? {} : { width: "0%" }}
+                      animate={{ width: `${item.value}%` }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-3 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <BrainCircuit className="h-4 w-4 text-primary" />
+              <span className="text-[11px] text-muted-foreground/70">AI Confidence Score</span>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-primary tabular-nums">96.8%</p>
+            <p className="text-[10px] text-muted-foreground/50">+2.1% from last week</p>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export { IdentityIntelligencePanel };

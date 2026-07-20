@@ -1,0 +1,57 @@
+from datetime import datetime, timezone
+from typing import Optional
+
+from app.models.decision_record import DecisionRecord
+
+
+class DecisionRepository:
+    @staticmethod
+    async def create(record: DecisionRecord) -> DecisionRecord:
+        return await record.insert()
+
+    @staticmethod
+    async def get_by_id(record_id: str) -> Optional[DecisionRecord]:
+        return await DecisionRecord.get(record_id)
+
+    @staticmethod
+    async def get_by_request_id(request_id: str) -> Optional[DecisionRecord]:
+        return await DecisionRecord.find_one(
+            DecisionRecord.request_id == request_id
+        )
+
+    @staticmethod
+    async def get_all(
+        skip: int = 0, limit: int = 100,
+    ) -> list[DecisionRecord]:
+        return (
+            await DecisionRecord.find_all()
+            .sort(-DecisionRecord.created_at)
+            .skip(skip)
+            .limit(limit)
+            .to_list()
+        )
+
+    @staticmethod
+    async def count() -> int:
+        return await DecisionRecord.find_all().count()
+
+    @staticmethod
+    async def statistics() -> dict:
+        total = await DecisionRecord.find_all().count()
+        grants = await DecisionRecord.find(
+            DecisionRecord.decision == "GRANT"
+        ).count()
+        denials = await DecisionRecord.find(
+            DecisionRecord.decision == "DENY"
+        ).count()
+        reviews = await DecisionRecord.find(
+            DecisionRecord.decision == "MANUAL_REVIEW"
+        ).count()
+
+        return {
+            "total_decisions": total,
+            "grants": grants,
+            "denials": denials,
+            "manual_reviews": reviews,
+            "grant_rate": round(grants / total, 4) if total else 0.0,
+        }
