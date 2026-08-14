@@ -47,7 +47,7 @@ async def seed():
             first_name="Admin",
             last_name="User",
             email="admin@gatevision.ai",
-            password=hash_password("admin123"),
+            password=hash_password("    "),
             role="admin",
             is_active=True,
         )

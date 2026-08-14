@@ -27951,3 +27951,32 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-08-14 15:40:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.52ms) request_id=0563a6a5fa86 | event=request_completed | duration_ms=3.52
 2026-08-14 15:41:29 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=9c691235754e | event=request_start
 2026-08-14 15:41:29 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (9.18ms) request_id=9c691235754e | event=request_completed | duration_ms=9.18
+2026-08-14 15:41:35 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=4e13907e0698 | event=request_start
+2026-08-14 15:41:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.17ms) request_id=4e13907e0698 | event=request_completed | duration_ms=7.17
+2026-08-14 15:42:29 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=4b2cd4984a7a | event=request_start
+2026-08-14 15:42:29 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.28ms) request_id=4b2cd4984a7a | event=request_completed | duration_ms=5.28
+2026-08-14 15:42:35 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=5517100c9723 | event=request_start
+2026-08-14 15:42:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (12.46ms) request_id=5517100c9723 | event=request_completed | duration_ms=12.46
+2026-08-14 15:43:29 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=b282545ebf92 | event=request_start
+2026-08-14 15:43:29 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (17.93ms) request_id=b282545ebf92 | event=request_completed | duration_ms=17.93
+2026-08-14 15:43:35 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=e685dfe9b283 | event=request_start
+2026-08-14 15:43:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (12.40ms) request_id=e685dfe9b283 | event=request_completed | duration_ms=12.4
+2026-08-14 15:44:29 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=776a9ed9baeb | event=request_start
+2026-08-14 15:44:29 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.34ms) request_id=776a9ed9baeb | event=request_completed | duration_ms=3.34
+2026-08-14 15:45:08 - app.middleware.request_logging - INFO - Request started: OPTIONS /api/v1/auth/me (client=127.0.0.1) request_id=e96db832c7cf | event=request_start
+2026-08-14 15:45:08 - app.middleware.request_logging - INFO - Request completed: OPTIONS /api/v1/auth/me -> 200 (5.67ms) request_id=e96db832c7cf | event=request_completed | duration_ms=5.67
+2026-08-14 15:45:08 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=c40a9d0b1246 | event=request_start
+2026-08-14 15:45:08 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (22.60ms) request_id=c40a9d0b1246 | event=request_completed | duration_ms=22.6
+2026-08-14 15:45:29 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=b48f119a4516 | event=request_start
+2026-08-14 15:45:29 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (10.63ms) request_id=b48f119a4516 | event=request_completed | duration_ms=10.63
+2026-08-14 15:45:29 - app.database.connection - INFO - Database connection closed
+2026-08-14 15:45:44 - app.database.connection - INFO - Database connected successfully
+2026-08-14 15:45:44 - app.services.ai.warmup - INFO - Warm-up: starting plate detector + OCR request_id=startup | event=warmup_started
+2026-08-14 15:45:44 - app.services.ai.plate_detection.model_loader - INFO - Loading YOLO model from: models/license_plate_detector.pt
+2026-08-14 15:45:44 - app.services.ai.registry.model_registry - INFO - Registered model 'yolo' (object_detection) on cpu
+2026-08-14 15:45:44 - app.services.ai.plate_detection.model_loader - INFO - Model loaded: device=cpu, version=8.3.87
+2026-08-14 15:45:44 - app.services.ai.plate_detection.model_loader - INFO - YOLO model classes: {0: 'license_plate'} | event=model_classes
+2026-08-14 15:45:44 - app.services.ai.plate_detection.model_loader - INFO - YOLO plate classes: ['license_plate'] | event=model_plate_classes
+2026-08-14 15:45:44 - app.services.ai.warmup - INFO - Warm-up: plate detector ready (447.82ms) request_id=startup | event=warmup_model_ready | duration_ms=447.82 | model=plate_detector
+2026-08-14 15:45:44 - app.services.ai.ocr.ocr_loader - INFO - Loading EasyOCR reader: langs=['en'], gpu=False
+2026-08-14 15:45:44 - easyocr.easyocr - WARNING - Using CPU. Note: This module is much faster with a GPU.
