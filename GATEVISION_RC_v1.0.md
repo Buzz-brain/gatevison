@@ -1,8 +1,62 @@
 # GateVision Release Candidate v1.0
 
 > AI-Powered Vehicle Access Control System
-> Audit Date: July 16, 2026
+> Audit Date: July 16, 2026 (updated for session-based architecture)
 > Build: `tsc --noEmit` 0 errors | `vite build` PASS
+
+---
+
+## 0. Session-Based Verification Architecture (Primary)
+
+Gate decisions run on a **session-based verification model**: every vehicle is tracked through an explicit session lifecycle (entry -> inside -> exit) keyed on the observed license plate. The backend exposes two decision modes; **Mode A is the default and is the model wired through the frontend**.
+
+### Decision Modes
+
+| Mode | Backend flag | Keyed by | Decision basis | Status |
+|------|-------------|----------|----------------|--------|
+| **A - Session Verification** | `DECISION_MODE="session"` (default) | License plate | Captured signal quality (plate OCR + face embedding + vehicle embedding) | **Active** (frontend + backend) |
+| **B - Identity Verification** | `DECISION_MODE="identity"` | Registered `vehicle_id` (+ `driver_id`) | Resolution against registered driver/vehicle profiles | Future enterprise deployment (backend routes exist; not wired in frontend) |
+
+### Session Lifecycle (Mode A)
+
+```
+Plate observed at gate -> signal capture (OCR plate, face embedding, vehicle embedding)
+        |
+        v
+POST /gate/entry  -> SessionVerificationService verifies capture quality
+        |            SessionGateService.create_entry_session()
+        v
+GateSession opened  (current_state OUTSIDE -> INSIDE; embeddings stored)
+        |            ENTRY transaction recorded
+        v        (vehicle parked inside)
+POST /gate/exit  -> ActiveSessionMatcher.find_best_match()
+        |            scores candidate active sessions:
+        |              plate 0.50 + vehicle 0.30 + face 0.20; match threshold >= 0.55
+        |              embedding fallback threshold >= 0.85
+        v
+On match: session closed (INSIDE -> OUTSIDE; exit_confidence stored)
+        EXIT transaction recorded
+        |
+On no match: EXIT rejected (no exit without an entry session)
+```
+
+Key rules:
+
+- Only a `GRANT` decision can open or close a session; a `DENY` produces no session.
+- A vehicle cannot exit without an active entry session (`ActiveSessionMatcher` rejects).
+- Session identity is the plate; `vehicle_id` stores the observed plate in Mode A.
+- Session states: `OUTSIDE` (initial) -> `INSIDE` (active) -> closed on validated exit. The UI derives `pending_exit` / `completed` display states from the current state.
+
+### Frontend Mapping (Gate Operations)
+
+| Entry stage sequence | Exit stage sequence |
+|----------------------|---------------------|
+| recognition -> decision -> barrier_opening -> vehicle_passing -> session_created | session_matching -> verification -> barrier_opening -> vehicle_passing -> session_closed |
+
+- Live "sessions inside" panel filters `GET /gate/active` to `current_state === "INSIDE"`.
+- TrafficPlayback replays gate transactions ("Entry session created" / "Exit session validated").
+- `use-gate-operations` drives the real API (5s session polling, 10s transaction polling, entry/exit mutations).
+- Gate endpoints: `POST /gate/entry`, `POST /gate/exit`, `GET /gate/active`, `GET /gate/transactions`, `GET /gate/session/{vehicle_id}`, `GET /gate/history/{vehicle_id}`, `GET /gate/statistics`.
 
 ---
 
@@ -30,7 +84,7 @@ gatevision-frontend/
       live-monitoring/         -- Placeholder page
       recognition/             -- Full pipeline, API-integrated with 7 sub-services
       identity/                -- 5-tab workspace, API-integrated with 5 sub-services
-      gate-operations/         -- 12 components, API-integrated + TrafficPlayback hackathon
+      gate-operations/         -- 12 components, session-based, API-integrated + TrafficPlayback
       reports/                 -- 19 components, API-integrated + SecurityIntelligenceCenter
       administration/          -- 10-tab workspace, API-integrated + SecurityCommandCenter
       system/                  -- API-integrated + DigitalTwinMonitor hackathon
@@ -66,7 +120,10 @@ User Action -> React Component -> React Query (use*-api hook)
 Auth State:    useAuthStore (Zustand + persist) <-> JWT tokens -> localStorage
 Server State:  useQuery/useMutation (React Query) <-> API services
 Demo State:    useDemoStore (Zustand, no persistence)
+Gate State:    GateSession lifecycle (backend) <-> /gate/* endpoints (5s-10s polling)
 ```
+
+> **Gate decisions are session-based by default (Mode A).** See Section 0 for the session lifecycle: plate-based entry opens a session storing face/vehicle embeddings; exit is validated by `ActiveSessionMatcher` against active sessions before the session closes.
 
 ---
 
@@ -149,7 +206,7 @@ Button, Card, Badge, Dialog, Tabs, Switch, Input, Select, Popover, Tooltip, Drop
 | dashboard | 14 components | Weather uses mock |
 | recognition | Pipeline, Timeline, CameraGrid, etc. | API-integrated |
 | identity | DriverWizard, VehicleWizard, DriverCard, IdentityIntel, etc. | API-integrated |
-| gate-operations | 12 components + TrafficPlayback | API-integrated |
+| gate-operations | 12 components + TrafficPlayback | Session-based, API-integrated |
 | reports | 19 components + SecurityIntelligenceCenter | API-integrated |
 | administration | 10-tab workspace + SecurityCommandCenter | API-integrated |
 | system | DigitalTwinMonitor, AI model grid, etc. | API-integrated |
@@ -176,7 +233,8 @@ Button, Card, Badge, Dialog, Tabs, Switch, Input, Select, Popover, Tooltip, Drop
 | User | Full | user.api.ts | -- (via auth) |
 | Recognition | Full (7 services) | recognition, face, ocr, vehicle, pipeline, decision, camera | use-recognition-api, use-camera, use-pipeline |
 | Identity | Full (5 services) | identity, driver, vehicle-profile, policy, enrollment | use-identity-api |
-| Gate Operations | Full | gate-session, gate-transaction, gate, workflow | use-gate-operations-api |
+| Gate Operations | Full (session-based) | gate-session, gate-transaction, gate, workflow | use-gate-operations-api |
+| Identity | Full | identity, driver, vehicle-profile, policy, enrollment | use-identity-api |
 | Reports | Full | reports, analytics, export, event | use-reports-api |
 | Administration | Full | admin, manual-review | use-admin-api |
 | System | Full | system, backup, monitoring | use-system-api |
@@ -185,7 +243,7 @@ Button, Card, Badge, Dialog, Tabs, Switch, Input, Select, Popover, Tooltip, Drop
 | Search | **Mock only** | -- | mockSearchService |
 | Weather | **Mock only** | -- | mock weather.service |
 
-**Missing Endpoint Definitions:** WATCHLIST, TRAINING, WORKFLOW (as top-level block)
+**Gate workflow endpoints live under `GATE.ENTRY` / `GATE.EXIT`** (top-level `WORKFLOW` block not needed; entry/exit are the workflow). **Missing Endpoint Definitions:** `WATCHLIST`, `TRAINING` (conceptual references in the recognition feature, no backend proxy routes).
 
 **Dead API Service Files (6):** `face.api.ts`, `ocr.api.ts`, `vehicle.api.ts`, `decision.api.ts`, `monitoring.api.ts`, `user.api.ts` -- orphaned, their functionality was consolidated into `system.api.ts` and `pipeline.api.ts`
 
@@ -323,10 +381,11 @@ CSS                     106 KB  (15 KB gzip)
 5. **No light mode color palette** -- CSS only defines dark theme colors. The theme toggle exists in UI but light mode may look broken (colors defined via runtime injection).
 6. **Chunk size warning** -- Main index chunk is 571 KB (exceeds 500 KB limit) due to recharts CJS compat. Dynamic import of recharts would resolve this.
 7. **Missing watchlist/training API endpoints** -- No `WATCHLIST` or `TRAINING` sections in `endpoints.ts`. Recognition feature references these conceptually but lacks backend proxy routes.
-8. **No automated tests** -- Zero test files found in the frontend. No Jest, Vitest, Playwright, or Testing Library setup.
-9. **No Storybook** -- `.storybook/` directory exists but is empty. Component library has no visual regression tests.
-10. **No PWA support** -- No service worker, no offline fallback (beyond the offline banner component). Full offline mode requires API caching strategy.
-11. **Backend at `localhost:8000`** -- No environment-specific backend URL configuration beyond `VITE_API_BASE_URL`. No Docker or deployment config included.
+8. **Mode B (Identity Verification) not wired in frontend** -- Backend routes support `DECISION_MODE="identity"` (registered-profile resolution), but the frontend gate operations run the default **Mode A (session-based)**. Identity Management Center remains the enterprise-facing module; switching to Mode B requires backend config `DECISION_MODE=identity` plus a frontend wiring pass.
+9. **No automated tests** -- Zero test files found in the frontend. No Jest, Vitest, Playwright, or Testing Library setup.
+10. **No Storybook** -- `.storybook/` directory exists but is empty. Component library has no visual regression tests.
+11. **No PWA support** -- No service worker, no offline fallback (beyond the offline banner component). Full offline mode requires API caching strategy.
+12. **Backend at `localhost:8000`** -- No environment-specific backend URL configuration beyond `VITE_API_BASE_URL`. No Docker or deployment config included.
 
 ---
 
@@ -379,6 +438,13 @@ CSS                     106 KB  (15 KB gzip)
 - [ ] Add Storybook for component documentation
 - [ ] Configure CSP headers on backend
 - [ ] Add E2E tests (Playwright)
+- [ ] Expose `GET /gate/session/{vehicle_id}` and `GET /gate/history/{vehicle_id}` in frontend `endpoints.ts` (currently hardcoded paths)
+
+### Future Enterprise Deployment (Mode B - Identity Verification)
+- [ ] Backend: verify `DECISION_MODE="identity"` end-to-end (identity service + registered driver/vehicle profiles)
+- [ ] Frontend: wire gate entry/exit to send `vehicle_id`/`driver_id` when Mode B is active (gate routes already branch on the flag)
+- [ ] Toggle decision mode from Settings or an env var; surface active mode in the Gate Operations UI
+- [ ] Document rollout for multi-site enterprise installs (registered fleets, driver enrollment)
 
 ### Long-Term (v2.0)
 - [ ] Replace recharts with lightweight chart library
@@ -398,9 +464,11 @@ CSS                     106 KB  (15 KB gzip)
 | No broken routes | **PASS** | All 16 content routes resolve; sidebar has 0 broken links |
 | No broken API calls | **PASS** | React Query hooks correctly reference API services; endpoints.ts covers all active integrations |
 | No dead API calls | **PARTIAL** | 6 dead API service files exist; no runtime errors from them |
+| Session-based gate flow | **PASS** | Mode A active end-to-end: entry opens GateSession, exit validated by ActiveSessionMatcher, sessions/transactions surfaced in Gate Operations |
+| Mode B (enterprise) | **NOT WIRED** | Backend routes support `DECISION_MODE="identity"`; frontend runs Mode A (documented under Future Enterprise Deployment) |
 | All features accessible | **PARTIAL** | 7/10 features API-integrated; settings/search/weather use mocks |
 | Application ready for demonstration | **PASS** | Can launch, login, navigate all features; Demo Center has 7 presentation views |
 
 ### Sign-Off Summary
 
-> **GateVision Release Candidate v1.0 passes the audit with 0 TypeScript errors, a clean build, and 7 of 10 features fully API-integrated. Critical accessibility gaps exist (dialog ARIA, focus management, skip-to-content) but do not block demonstration. Dead code cleanup and navigation fixes are recommended before v1.0 release.**
+> **GateVision Release Candidate v1.0 passes the audit with 0 TypeScript errors, a clean build, and 7 of 10 features fully API-integrated. Gate decisions run on the default session-based verification model (Mode A): plate-based entry opens a session storing face/vehicle embeddings, and exit is validated by ActiveSessionMatcher before the session closes. Mode B (identity verification) is documented for future enterprise deployment. Critical accessibility gaps exist (dialog ARIA, focus management, skip-to-content) but do not block demonstration. Dead code cleanup and navigation fixes are recommended before v1.0 release.**

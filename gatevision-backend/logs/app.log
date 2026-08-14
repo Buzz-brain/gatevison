@@ -27980,3 +27980,8 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-08-14 15:45:44 - app.services.ai.warmup - INFO - Warm-up: plate detector ready (447.82ms) request_id=startup | event=warmup_model_ready | duration_ms=447.82 | model=plate_detector
 2026-08-14 15:45:44 - app.services.ai.ocr.ocr_loader - INFO - Loading EasyOCR reader: langs=['en'], gpu=False
 2026-08-14 15:45:44 - easyocr.easyocr - WARNING - Using CPU. Note: This module is much faster with a GPU.
+2026-08-14 15:45:48 - app.services.ai.registry.model_registry - INFO - Registered model 'easyocr' (ocr) on cpu
+2026-08-14 15:45:48 - app.services.ai.ocr.ocr_loader - INFO - OCR reader loaded: device=cpu, langs=['en']
+2026-08-14 15:45:48 - app.services.ai.warmup - INFO - Warm-up: OCR reader ready (3639.35ms) request_id=startup | event=warmup_model_ready | duration_ms=3639.35 | model=ocr
+2026-08-14 15:45:48 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=c4cbcb7a45b7 | event=request_start
+2026-08-14 15:45:48 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (13.75ms) request_id=c4cbcb7a45b7 | event=request_completed | duration_ms=13.75
