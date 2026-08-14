@@ -328,3 +328,84 @@ async def test_persist_decision_skipped_without_decision(mock_services):
     ) as create_mock:
         await orchestrator._persist_decision(ctx)
         create_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("app.services.ai.orchestrator.orchestrator.DecisionRepository.create")
+async def test_persist_decision_skipped_when_not_finalize(create_mock, mock_services):
+    orchestrator = PipelineOrchestrator(services=mock_services)
+    ctx = PipelineContext(request_id="req-precheck", finalize=False)
+    ctx.decision = {
+        "decision": "GRANT",
+        "overall_confidence": 0.92,
+        "explanation": "All evidence passed.",
+        "evidence": [],
+    }
+
+    await orchestrator._persist_decision(ctx)
+
+    create_mock.assert_not_awaited()
+    assert ctx.gate_workflow_result is None
+
+
+@pytest.mark.asyncio
+async def test_gate_workflow_skipped_when_not_finalize(mock_services):
+    orchestrator = PipelineOrchestrator(services=mock_services)
+    ctx = PipelineContext(request_id="req-precheck", finalize=False)
+    ctx.decision = {"decision": "GRANT", "overall_confidence": 0.9}
+    ctx.ocr_results = [{
+        "raw_text": "APP971KS",
+        "cleaned_text": "APP971KS",
+        "confidence": 0.9,
+        "validation_status": "valid",
+    }]
+
+    await orchestrator._process_gate_workflow(ctx)
+
+    assert ctx.gate_workflow_result is None
+
+
+@pytest.mark.asyncio
+@patch(
+    "app.services.ai.orchestrator.orchestrator.DecisionRepository.update_decision"
+)
+async def test_gate_rejection_downgrades_decision_to_deny(update_mock, mock_services):
+    orchestrator = PipelineOrchestrator(services=mock_services)
+    ctx = PipelineContext(request_id="req-exit", direction="exit")
+    ctx.decision = {
+        "decision": "GRANT",
+        "overall_confidence": 0.61,
+        "explanation": "Plate + face captured",
+        "evidence": [],
+    }
+
+    await orchestrator._deny_on_gate_rejection(
+        ctx, "Face does not match the entry driver"
+    )
+
+    assert ctx.decision["decision"] == "DENY"
+    assert "Face does not match" in ctx.decision["explanation"]
+    update_mock.assert_awaited_once_with(
+        "req-exit", "DENY", ctx.decision["explanation"]
+    )
+
+
+@pytest.mark.asyncio
+@patch(
+    "app.services.ai.orchestrator.orchestrator.DecisionRepository.update_decision",
+    new=AsyncMock(side_effect=Exception("mongo down")),
+)
+async def test_gate_rejection_persist_failure_is_graceful(mock_services):
+    orchestrator = PipelineOrchestrator(services=mock_services)
+    ctx = PipelineContext(request_id="req-exit", direction="exit")
+    ctx.decision = {
+        "decision": "GRANT",
+        "overall_confidence": 0.61,
+        "explanation": "",
+        "evidence": [],
+    }
+
+    await orchestrator._deny_on_gate_rejection(ctx, "Rejected")
+
+    assert ctx.decision["decision"] == "DENY"
+    assert any(w["stage"] == "decision_override" for w in ctx.warnings)

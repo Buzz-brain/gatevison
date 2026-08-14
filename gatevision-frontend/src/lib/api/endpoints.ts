@@ -22,6 +22,7 @@ export const ENDPOINTS = {
     STOP: "/camera/stop",
     STATUS: "/camera/status",
     CAPTURE: "/camera/capture",
+    DETECT: "/camera/detect",
   },
   PLATE_DETECTION: {
     DETECT_UPLOAD: "/plate-detection/detect/upload",

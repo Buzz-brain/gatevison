@@ -1,0 +1,44 @@
+    async def execute_from_camera(
+        self, camera_id: str = "default", direction: str = "entry",
+        request_id: Optional[str] = None,
+        require_face: Optional[bool] = None,
+        finalize: Optional[bool] = None,
+    ) -> PipelineResult:
+        context = PipelineContext(
+            camera_id=camera_id,
+            direction=direction,
+            require_face=require_face,
+            finalize=finalize if finalize is not None else True,
+        )
+        if request_id:
+            context.request_id = request_id
+        context.add_timestamp("pipeline_start")
+
+        camera_svc = self.services.detection_service.camera_service
+        try:
+            frame = camera_svc.capture()
+        except CameraError as e:
+            raise ContextValidationError(str(e)) from e
+        if frame is None:
+            raise ContextValidationError("Camera returned no frame")
+
+        if isinstance(camera_svc, CameraService):
+            if (
+                settings.CAMERA_AVOID_DUPLICATE_PROCESSING
+                and camera_svc.is_duplicate_of_processed(frame)
+            ):
+                raise ContextValidationError(
+                    "Duplicate frame - no new vehicle activity detected"
+                )
+
+        context.frame = frame
+        context.frame_metadata = {
+            "height": frame.shape[0],
+            "width": frame.shape[1],
+            "channels": frame.shape[2] if frame.ndim == 3 else 1,
+        }
+
+        result = await self._execute(context)
+        if isinstance(camera_svc, CameraService):
+            camera_svc.note_processed(frame)
+        return result

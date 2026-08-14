@@ -10134,3 +10134,8 @@ AttributeError: 'DetectionResult' object has no attribute 'get'
 2026-08-11 16:36:48 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'KJA987FT' is already INSIDE. Duplicate entry rejected.
 2026-08-14 12:03:53 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'KJA987FT' is already INSIDE. Duplicate entry rejected.
 2026-08-14 14:04:16 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.
+2026-08-14 16:19:39 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.
+2026-08-14 17:58:17 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.
+2026-08-14 18:01:39 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.
+2026-08-14 18:04:07 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.
+2026-08-14 19:35:07 - gate - ERROR - GateError | op=exit_session | error=Face does not match the entry driver

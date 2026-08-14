@@ -39,6 +39,7 @@ async def pipeline_process_upload(
     camera_id: Optional[str] = Query(None),
     direction: str = Query("entry", pattern="^(entry|exit)$"),
     require_face: Optional[bool] = Query(None),
+    finalize: Optional[bool] = Query(None),
     orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
     request: Request = None,
 ):
@@ -52,6 +53,7 @@ async def pipeline_process_upload(
             request_id=getattr(request.state, "request_id", None),
             require_face=require_face,
             face_data=face_data,
+            finalize=finalize,
         )
         return _to_api_response(result)
     except ContextValidationError as e:
@@ -65,6 +67,7 @@ async def pipeline_process_camera(
     camera_id: str = Query("default"),
     direction: str = Query("entry", pattern="^(entry|exit)$"),
     require_face: Optional[bool] = Query(None),
+    finalize: Optional[bool] = Query(None),
     orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
     request: Request = None,
 ):
@@ -74,6 +77,7 @@ async def pipeline_process_camera(
             direction=direction,
             request_id=getattr(request.state, "request_id", None),
             require_face=require_face,
+            finalize=finalize,
         )
         return _to_api_response(result)
     except ContextValidationError as e:

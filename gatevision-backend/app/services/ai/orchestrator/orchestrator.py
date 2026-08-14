@@ -132,11 +132,13 @@ class PipelineOrchestrator:
         request_id: Optional[str] = None,
         require_face: Optional[bool] = None,
         face_data: Optional[bytes] = None,
+        finalize: Optional[bool] = None,
     ) -> PipelineResult:
         context = PipelineContext(
             camera_id=camera_id,
             direction=direction,
             require_face=require_face,
+            finalize=finalize if finalize is not None else True,
         )
         if request_id:
             context.request_id = request_id
@@ -169,11 +171,13 @@ class PipelineOrchestrator:
         self, camera_id: str = "default", direction: str = "entry",
         request_id: Optional[str] = None,
         require_face: Optional[bool] = None,
+        finalize: Optional[bool] = None,
     ) -> PipelineResult:
         context = PipelineContext(
             camera_id=camera_id,
             direction=direction,
             require_face=require_face,
+            finalize=finalize if finalize is not None else True,
         )
         if request_id:
             context.request_id = request_id
@@ -693,6 +697,8 @@ class PipelineOrchestrator:
             }
 
     async def _persist_decision(self, context: PipelineContext) -> None:
+        if not context.finalize:
+            return
         decision = context.decision
         if not decision:
             return
@@ -713,6 +719,8 @@ class PipelineOrchestrator:
             context.add_warning("decision_persist", str(e))
 
     async def _process_gate_workflow(self, context: PipelineContext) -> None:
+        if not context.finalize:
+            return
         svc = self.services.gate_workflow_service
         if svc is None:
             return
@@ -789,6 +797,10 @@ class PipelineOrchestrator:
             }
             if result.error:
                 context.gate_workflow_result["error"] = result.error
+            if not result.success:
+                await self._deny_on_gate_rejection(
+                    context, result.error or result.message or ""
+                )
         except Exception as e:
             context.gate_workflow_result = {
                 "success": False,
@@ -796,6 +808,29 @@ class PipelineOrchestrator:
                 "message": f"Gate workflow error: {e}",
                 "error": str(e),
             }
+
+    async def _deny_on_gate_rejection(
+        self, context: PipelineContext, reason: str
+    ) -> None:
+        """The gate is authoritative: when it rejects a GRANT (e.g. exit face
+        mismatch, duplicate entry), record the outcome as DENY so history and
+        the API response reflect reality instead of the engine's provisional
+        GRANT."""
+        if not context.decision:
+            return
+        context.decision["decision"] = "DENY"
+        explanation = context.decision.get("explanation") or ""
+        if reason:
+            explanation = f"{explanation} Gate: {reason}".strip()
+        context.decision["explanation"] = explanation
+        if not context.request_id:
+            return
+        try:
+            await DecisionRepository.update_decision(
+                context.request_id, "DENY", explanation
+            )
+        except Exception as e:
+            context.add_warning("decision_override", str(e))
 
     async def _aggregate_results(self, context: PipelineContext) -> None:
         pass
@@ -850,6 +885,7 @@ class PipelineOrchestrator:
                 "matched_driver_id": r.get("matched_driver_id"),
                 "matched_driver_name": r.get("matched_driver_name"),
                 "embedding_distance": r.get("embedding_distance"),
+                "detections": r.get("detections", []),
             }
             for r in context.face_recognition_results
         ]

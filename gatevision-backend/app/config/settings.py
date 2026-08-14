@@ -121,6 +121,11 @@ class Settings(BaseSettings):
     SESSION_MATCH_FACE_WEIGHT: float = 0.2
     SESSION_MATCH_THRESHOLD: float = 0.55
     SESSION_MATCH_EMBEDDING_FALLBACK_THRESHOLD: float = 0.85
+    #   Exit driver-consistency gate: when BOTH the entry session and the exit
+    #   capture have a face embedding, the exit face must be this similar to the
+    #   entry face for the exit to match - even when the plate matches exactly.
+    #   This stops "same car, different person" exits (stolen/loaned plates).
+    SESSION_MATCH_FACE_REQUIRE_THRESHOLD: float = 0.65
 
     # Camera performance & reliability
     #   Minimum time between physical camera reads. Repeated captures inside the

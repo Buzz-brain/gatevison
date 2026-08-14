@@ -31,6 +31,7 @@ class PipelineContext:
     gate_workflow_result: Optional[dict] = None
     direction: str = "entry"
     require_face: Optional[bool] = None
+    finalize: bool = True
 
     def add_timestamp(self, name: str) -> None:
         self.timestamps[name] = datetime.now(timezone.utc).isoformat()

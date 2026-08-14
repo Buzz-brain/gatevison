@@ -112,3 +112,28 @@ async def test_session_mode_exit_dispatch(sample_frame):
     wf.run_session_exit.assert_called_once()
     wf.run_session_entry.assert_not_called()
     assert result.gate_workflow_result["action"] == "EXIT"
+
+
+@pytest.mark.asyncio
+async def test_session_mode_exit_face_mismatch_surfaces(sample_frame):
+    orchestrator, wf = build_orchestrator(direction="exit")
+    rejected = MagicMock()
+    rejected.success = False
+    rejected.action = "EXIT"
+    rejected.vehicle_id = "ABC-1234"
+    rejected.message = "Exit rejected"
+    rejected.error = "Face does not match the entry driver"
+    rejected.session = None
+    rejected.transaction = None
+    wf.run_session_exit = AsyncMock(return_value=rejected)
+
+    ctx = PipelineContext(direction="exit")
+    ctx.frame = sample_frame
+
+    result = await orchestrator.execute(ctx)
+    wf.run_session_exit.assert_called_once()
+    assert result.gate_workflow_result["success"] is False
+    assert result.gate_workflow_result["action"] == "EXIT"
+    assert "Face does not match" in result.gate_workflow_result["error"]
+    assert result.decision["decision"] == "DENY"
+    assert "Face does not match" in result.decision["explanation"]

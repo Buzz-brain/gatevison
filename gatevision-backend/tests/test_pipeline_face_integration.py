@@ -10,6 +10,7 @@ from app.services.ai.orchestrator.orchestrator import (
     PipelineOrchestrator,
     PipelineServices,
 )
+from app.services.decision.decision_engine import DecisionEngine
 
 
 @pytest.fixture
@@ -303,3 +304,81 @@ async def test_pipeline_invalid_face_data_raises(
         orchestrator = PipelineOrchestrator(services=services)
         with pytest.raises(ContextValidationError):
             await orchestrator.execute_from_upload(b"vehicle", face_data=b"badface")
+
+
+@pytest.mark.asyncio
+async def test_pipeline_require_face_grants_when_face_captured(sample_frame):
+    """Regression: a captured face (embedding present) must reach the session
+    verification service even when require_face is true, so the decision is
+    GRANT rather than MANUAL_REVIEW."""
+    mock_det_svc = MagicMock()
+    mock_det_svc.detect_from_frame = AsyncMock(
+        return_value={
+            "detections": [
+                {
+                    "bbox": [10, 20, 60, 35],
+                    "confidence": 0.95,
+                    "cropped_plate_path": "",
+                }
+            ],
+        }
+    )
+
+    mock_ocr_svc = MagicMock()
+    mock_ocr_svc.read_many = AsyncMock(
+        return_value=[
+            {
+                "plate_index": 0,
+                "raw_text": "APP971KS",
+                "cleaned_text": "APP971KS",
+                "confidence": 0.9,
+                "validation_status": "valid",
+                "validation_message": "ok",
+            }
+        ]
+    )
+
+    mock_face_svc = MagicMock(spec=FaceRecognitionService)
+    mock_face_svc.recognize_from_image = AsyncMock(
+        return_value={
+            "face_detected": True,
+            "face_count": 1,
+            "detections": [
+                {
+                    "bbox": [10, 10, 60, 60],
+                    "confidence": 0.9,
+                    "cropped_face_path": "",
+                    "embedding": [0.5] * 512,
+                    "embedding_dimension": 512,
+                    "similarity_score": None,
+                    "matched": False,
+                    "inference_time_ms": 10.0,
+                }
+            ],
+            "similarity_score": None,
+            "matched": False,
+            "embedding_dimension": 512,
+            "inference_time_ms": 10.0,
+        }
+    )
+
+    services = PipelineServices(
+        detection_service=mock_det_svc,
+        ocr_service=mock_ocr_svc,
+        face_recognition_service=mock_face_svc,
+        vehicle_fingerprint_service=None,
+        decision_engine=DecisionEngine(),
+    )
+
+    with patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.read_bytes",
+        return_value=sample_frame,
+    ):
+        orchestrator = PipelineOrchestrator(services=services)
+        result = await orchestrator.execute_from_upload(
+            b"data", require_face=True,
+        )
+
+        assert result.decision is not None
+        assert result.decision["decision"] == "GRANT"
+        assert result.decision["session_verification"]["face_captured"] is True

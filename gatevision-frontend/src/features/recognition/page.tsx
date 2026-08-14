@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  ScanLine, Play, RotateCcw, Loader2, X, MonitorPlay,
+  ScanLine, Play, RotateCcw, Loader2, X, MonitorPlay, Camera,
 } from "lucide-react";
 import { PageContainer, SectionHeader } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useUIStore } from "@/store/ui-store";
 import { usePipeline, STAGE_ORDER } from "./hooks/use-pipeline";
 import { usePlayback } from "./hooks/use-playback";
-import { useProcessPipeline, useRecognitionHistory, useDeleteHistoryEntry, useClearHistory } from "./hooks/use-recognition-api";
+import { useProcessPipeline, useRecognitionHistory, useDeleteHistoryEntry, useClearHistory, useProcessPipelineCamera, useStartCamera, useStopCamera } from "./hooks/use-recognition-api";
 import { LiveGateOverlay } from "./components/live-gate-overlay";
 import { CaptureInput } from "./components/capture-input";
 import { Pipeline } from "./components/pipeline";
@@ -39,6 +39,7 @@ function RecognitionCenterPage() {
   const [direction, setDirection] = useState<"entry" | "exit">("entry");
   const [requireFace, setRequireFace] = useState(false);
   const [liveGateOpen, setLiveGateOpen] = useState(false);
+  const [captureSource, setCaptureSource] = useState<"upload" | "camera" | null>(null);
   const [playbackMode, setPlaybackMode] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<Array<{ time: string; label: string; stage: string; status: string; detail?: string }>>([]);
   const [pipelineId, setPipelineId] = useState<string | null>(null);
@@ -52,6 +53,9 @@ function RecognitionCenterPage() {
     start: startPipeline, reset: resetPipeline, applyBackendStatus } = usePipeline({ autoStart: false });
 
   const processMutation = useProcessPipeline();
+  const cameraProcessMutation = useProcessPipelineCamera();
+  const startCameraMutation = useStartCamera();
+  const stopCameraMutation = useStopCamera();
   const { data: historyData } = useRecognitionHistory(1);
   const deleteHistoryMutation = useDeleteHistoryEntry();
   const clearHistoryMutation = useClearHistory();
@@ -125,6 +129,7 @@ function RecognitionCenterPage() {
   const runRecognition = useCallback(async () => {
     if (!selectedFile) return;
     setIsProcessing(true);
+    setCaptureSource("upload");
     setResult(null);
     setPlaybackMode(false);
     setUploadProgress(0);
@@ -182,6 +187,59 @@ function RecognitionCenterPage() {
       });
     }
   }, [selectedFile, direction, processMutation, startPipeline, pollPipelineStatus, applyResultStatus, applyBackendStatus, addNotification]);
+
+  const runLiveCapture = useCallback(async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setCaptureSource("camera");
+    setResult(null);
+    setPlaybackMode(false);
+    startPipeline();
+
+    let started = false;
+    try {
+      await startCameraMutation.mutateAsync(0);
+      started = true;
+      const apiResult = await cameraProcessMutation.mutateAsync({ direction, requireFace, finalize: true });
+      applyResultStatus(apiResult);
+      const mapped = mapPipelineResult(apiResult);
+      setResult(mapped);
+      setTimelineEvents(buildTimelineFromApi(apiResult.timestamps, mapped.stages));
+      addNotification({
+        type: apiResult.decision?.decision === "granted" ? "success" : "warning",
+        category: "recognition",
+        title: "Live capture complete",
+        description: apiResult.ocr?.raw_text
+          ? `Plate read as ${apiResult.ocr.raw_text} from the live feed.`
+          : "Live pipeline finished. No plate text was recognized.",
+      });
+    } catch (err) {
+      applyBackendStatus({
+        pipeline_id: "",
+        status: "failed",
+        current_stage: "decision",
+        progress: 100,
+        stages: [],
+      });
+      const message = (err as { message?: string })?.message || "Live capture failed";
+      addNotification({
+        type: "error",
+        category: "recognition",
+        title: "Live capture failed",
+        description: message,
+      });
+    } finally {
+      setIsProcessing(false);
+      setCaptureSource(null);
+      if (started) {
+        try {
+          await stopCameraMutation.mutateAsync();
+        } catch {
+          // Best-effort release of the backend camera device
+        }
+      }
+    }
+  }, [isProcessing, direction, requireFace, startCameraMutation, cameraProcessMutation, stopCameraMutation, startPipeline, applyResultStatus, applyBackendStatus, addNotification]);
 
   const onHistoryReplay = useCallback((entry: RecognitionHistoryEntry) => {
     const loadFromHistory = async () => {
@@ -283,6 +341,25 @@ function RecognitionCenterPage() {
               <MonitorPlay className="h-3.5 w-3.5" />
               Live Gate
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={runLiveCapture}
+              disabled={isProcessing || cameraProcessMutation.isPending}
+              className="gap-1.5"
+            >
+              {isProcessing && captureSource === "camera" ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Capturing From Device...
+                </>
+              ) : (
+                <>
+                  <Camera className="h-3.5 w-3.5" />
+                  Live Capture
+                </>
+              )}
+            </Button>
             {playbackMode && (
               <Button variant="ghost" size="sm" onClick={exitPlayback} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
@@ -325,7 +402,9 @@ function RecognitionCenterPage() {
               {isProcessing || processMutation.isPending ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {direction === "exit" ? "Matching Active Session..." : "Creating Entry Session..."}
+                  {captureSource === "camera"
+                    ? "Processing Live Feed..."
+                    : direction === "exit" ? "Matching Active Session..." : "Creating Entry Session..."}
                 </>
               ) : (
                 <>

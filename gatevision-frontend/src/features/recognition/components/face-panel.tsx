@@ -22,8 +22,14 @@ function FacePanel({ face }: FacePanelProps) {
       {/* Similarity */}
       <div className="flex items-center justify-between rounded-lg bg-elevated p-3">
         <div>
-          <p className="text-[10px] text-muted-foreground/60">Matched Driver</p>
-          <p className="text-sm font-medium">{face.matchedDriver ?? "Unknown"}</p>
+          <p className="text-[10px] text-muted-foreground/60">
+            {face.matchSource === "session" ? "Session Driver" : "Matched Driver"}
+          </p>
+          <p className="text-sm font-medium">
+            {face.matchSource === "session"
+              ? "Matches entry driver"
+              : face.matchedDriver ?? "Unknown"}
+          </p>
         </div>
         <ConfidenceGauge value={face.similarity} size={60} strokeWidth={6} label="Similarity" />
       </div>

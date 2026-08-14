@@ -81,12 +81,19 @@ class EvidenceCollector:
         matched = combined.get("matched", False)
         confidence = score if score is not None else (1.0 if matched else 0.0)
 
+        metadata = {
+            k: v
+            for k, v in combined.items()
+            if k != "detections"
+        }
+        metadata["detection_count"] = len(combined.get("detections") or [])
+
         return Evidence(
             module_name="face_recognition",
             confidence=confidence,
             matched=matched,
             score=score,
-            metadata=combined,
+            metadata=metadata,
         )
 
     def _build_vehicle_evidence(self, result: PipelineResult) -> Optional[Evidence]:

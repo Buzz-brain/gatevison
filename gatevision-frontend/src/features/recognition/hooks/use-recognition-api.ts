@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/lib/api/query-client";
-import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi } from "@/services/api/pipeline.api";
+import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi, processPipelineCameraApi } from "@/services/api/pipeline.api";
 import { getRecognitionHistoryApi, getRecognitionResultApi, getModelStatusApi, deleteRecognitionHistoryEntryApi, clearRecognitionHistoryApi } from "@/services/api/recognition.api";
+import { startCameraApi, stopCameraApi, getCameraStatusApi, detectCamerasApi, type CameraStatus, type DetectCamerasResult } from "@/services/api/camera.api";
 import { mapPipelineResult, mapHistoryEntry } from "../api/mapper";
 import type { RecognitionResult, RecognitionHistoryEntry } from "../types";
 import type { ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiModelStatus } from "../types/api";
@@ -10,12 +11,68 @@ export function useProcessPipeline() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (args: { file: File; direction?: "entry" | "exit"; requireFace?: boolean; faceFile?: File }): Promise<ApiPipelineResult> => {
-      return processPipelineUploadApi(args.file, args.direction ?? "entry", undefined, args.requireFace, args.faceFile);
+    mutationFn: async (args: { file: File; direction?: "entry" | "exit"; requireFace?: boolean; faceFile?: File; finalize?: boolean }): Promise<ApiPipelineResult> => {
+      return processPipelineUploadApi(args.file, args.direction ?? "entry", undefined, args.requireFace, args.faceFile, args.finalize);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recognition"] });
     },
+  });
+}
+
+export function useProcessPipelineCamera() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: { direction?: "entry" | "exit"; requireFace?: boolean; finalize?: boolean }): Promise<ApiPipelineResult> => {
+      return processPipelineCameraApi(args.direction ?? "entry", args.requireFace, undefined, args.finalize);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recognition"] });
+    },
+  });
+}
+
+export function useCameraStatus() {
+  return useQuery({
+    queryKey: QUERY_KEYS.CAMERA.STATUS,
+    queryFn: (): Promise<CameraStatus> => getCameraStatusApi(),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || data.is_running) return 5_000;
+      return false;
+    },
+    retry: 2,
+    staleTime: 5_000,
+  });
+}
+
+export function useStartCamera() {
+  const queryClient = useQueryClient();
+  return useMutation<CameraStatus, unknown, number>({
+    mutationFn: (source) => startCameraApi(source),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CAMERA.STATUS });
+    },
+  });
+}
+
+export function useStopCamera() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => stopCameraApi(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CAMERA.STATUS });
+    },
+  });
+}
+
+export function useDetectCameras() {
+  return useQuery({
+    queryKey: ["camera", "detect"],
+    queryFn: (): Promise<DetectCamerasResult> => detectCamerasApi(),
+    staleTime: 60_000,
+    retry: 1,
   });
 }
 

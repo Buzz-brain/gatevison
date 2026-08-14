@@ -61,13 +61,13 @@ function speakLine(text: string, muted: boolean): Promise<void> {
         resolve();
       };
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.92;
+      u.rate = 1.05;
       u.pitch = 1;
       u.onend = finish;
       u.onerror = finish;
       window.speechSynthesis.speak(u);
       const words = Math.max(1, text.split(/\s+/).length);
-      setTimeout(finish, words * 480 + 1200);
+      setTimeout(finish, words * 340 + 700);
     } catch {
       resolve();
     }
@@ -83,17 +83,15 @@ interface JourneyStep {
 
 const SCAN_STEPS: JourneyStep[] = [
   { text: "Looking for your license plate...", spoken: "Looking for your license plate. Please hold still." },
-  { text: "Scanning the vehicle front...", spoken: "Scanning the vehicle front." },
   { text: "Reading the plate characters...", spoken: "Reading the plate characters." },
-  { text: "Checking the vehicle against our records...", spoken: "Checking the vehicle against our records." },
-  { text: "Just a moment while I finish the verification...", spoken: "Just a moment while I finish the verification." },
+  { text: "Finishing the check...", spoken: "Finishing the check." },
 ];
 
 const FACE_SCAN_STEPS: JourneyStep[] = [
-  { text: "Verifying your identity...", spoken: "Verifying your identity. Please hold still." },
-  { text: "Matching your face against the vehicle record...", spoken: "Matching your face against the vehicle record." },
-  { text: "Just a moment while I finish the verification...", spoken: "Just a moment while I finish the verification." },
+  { text: "Capturing your face...", spoken: "Capturing your face. Please hold still." },
 ];
+
+const MAX_CAMERA_RETRIES = 4;
 
 function getCameraErrorMessage(err: unknown): string {
   const name = err && typeof err === "object" && "name" in err ? String((err as { name?: unknown }).name ?? "") : "";
@@ -133,19 +131,30 @@ function buildFinaleSteps(
   let decisionText = "";
   let decisionSpoken = "";
   let decisionSound: GateSound | undefined;
-  if (decision === "granted" && !gateRejected) {
+  const gateDetail = api.gate?.error || api.gate?.message || "";
+  const gateReason = gateRejected
+    ? /already inside|already in\b/i.test(gateDetail)
+      ? "This vehicle is already inside. Please use the exit lane."
+      : /already outside|already out\b/i.test(gateDetail)
+        ? "This vehicle is already outside. Please use the entry lane."
+        : gateDetail
+    : "";
+  if (gateRejected && (decision === "granted" || decision === "denied")) {
+    if (gateReason) {
+      decisionText = gateReason;
+    } else if (decision === "granted") {
+      decisionText = "The gate could not be opened. Please see the operator.";
+    } else {
+      decisionText = "Access denied. Please do not proceed.";
+    }
+    decisionSpoken = decisionText;
+    decisionSound = "deny";
+  } else if (decision === "granted") {
     decisionText = direction === "exit"
       ? "Access granted. You may now exit the facility."
       : GRANT_TEXT;
     decisionSpoken = decisionText;
     decisionSound = "open";
-  } else if (decision === "granted" && gateRejected) {
-    decisionText = api.gate?.message ?? "This vehicle is already inside. Please use the exit lane.";
-    decisionSpoken =
-      direction === "entry"
-        ? "This vehicle is already inside. Please use the exit lane."
-        : "This vehicle is already outside. Please use the entry lane.";
-    decisionSound = "deny";
   } else if (decision === "denied") {
     decisionText = "Access denied. Please do not proceed.";
     decisionSpoken = "Access denied. Please do not proceed.";
@@ -161,7 +170,7 @@ function buildFinaleSteps(
   if (hasPlate) {
     steps.push({
       text: `Found it! Your plate is ${plate}.`,
-      spoken: `Found it, your plate is ${plate}.`,
+      spoken: `Your plate is ${plate}.`,
       sound: "beep",
     });
   } else {
@@ -172,21 +181,13 @@ function buildFinaleSteps(
   }
 
   if (hasFingerprint) {
-    steps.push(
-      { text: "Now taking the vehicle fingerprint...", spoken: "Now taking the vehicle fingerprint." },
-      { text: "Vehicle fingerprint captured.", spoken: "Vehicle fingerprint captured." },
-    );
+    steps.push({ text: "Vehicle fingerprint captured.", spoken: "Vehicle fingerprint captured." });
   }
 
-  if (requireFace && faceHandledInDedicatedStep) {
-    if (faceDetected) {
-      steps.push({ text: "Face identity verified. Thank you.", spoken: "Face identity verified. Thank you." });
-    } else {
-      steps.push({ text: "I could not verify your face clearly.", spoken: "I could not verify your face clearly." });
-    }
+  if (requireFace && faceHandledInDedicatedStep && faceDetected) {
+    steps.push({ text: "Face captured. Thank you.", spoken: "Face captured." });
   }
 
-  steps.push({ text: "One last thing... verifying the access list.", spoken: "One last thing." });
   steps.push({ text: decisionText, spoken: decisionSpoken, sound: decisionSound, reveal: true });
 
   return steps;
@@ -230,6 +231,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const pendingResultRef = useRef<ApiPipelineResult | null>(null);
   const vehicleFileRef = useRef<File | null>(null);
   const cameraStartingRef = useRef(false);
+  const cameraRetryRef = useRef(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -276,12 +278,23 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       streamRef.current = stream;
+      cameraRetryRef.current = 0;
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
         video.play().catch(() => undefined);
       }
     } catch (err) {
+      const name = err && typeof err === "object" && "name" in err ? String((err as { name?: unknown }).name ?? "") : "";
+      const busy = name === "NotReadableError" || name === "TrackStartError";
+      if (busy && cameraRetryRef.current < MAX_CAMERA_RETRIES) {
+        cameraRetryRef.current += 1;
+        cameraStartingRef.current = false;
+        await new Promise((r) => setTimeout(r, 800));
+        await startCamera();
+        return;
+      }
+      cameraRetryRef.current = 0;
       setCameraError(getCameraErrorMessage(err));
     } finally {
       cameraStartingRef.current = false;
@@ -327,7 +340,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     });
   }, []);
 
-  const runJourneySteps = useCallback(async (steps: JourneyStep[], gapMs = 650) => {
+  const runJourneySteps = useCallback(async (steps: JourneyStep[], gapMs = 400) => {
     const seq = journeySeqRef.current;
     for (const s of steps) {
       if (journeySeqRef.current !== seq) return;
@@ -383,6 +396,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       faceFile: kind === "face" ? file : undefined,
       direction,
       requireFace: kind === "face" ? requireFace : false,
+      finalize: kind === "face",
     });
     promise.then(handleResult).catch(handleError);
 
@@ -404,21 +418,21 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
           setFacePreviewUrl(null);
           setFaceDenied(false);
           const msg = plate
-            ? `Vehicle identified as ${plate}. Now please look at the face camera so I can verify you.`
-            : "Vehicle scanned. Now please look at the face camera so I can verify you.";
+            ? `Vehicle identified as ${plate}. Now please look at the face camera.`
+            : "Vehicle scanned. Now please look at the face camera.";
           setNarrative(msg);
           speak(msg, mutedRef.current);
         } else {
           setPhase("complete");
           const mapped = mapPipelineResult(api);
-          await runJourneySteps(buildFinaleSteps(api, mapped, direction, requireFace, false), 700);
+          await runJourneySteps(buildFinaleSteps(api, mapped, direction, requireFace, false), 450);
         }
         return;
       }
 
       setPhase("complete");
       const mapped = mapPipelineResult(api);
-      await runJourneySteps(buildFinaleSteps(api, mapped, direction, requireFace, kind === "face"), 700);
+      await runJourneySteps(buildFinaleSteps(api, mapped, direction, requireFace, kind === "face"), 450);
     } catch (err) {
       console.error("Live gate scan aborted:", err);
       handleError(err ?? null);
@@ -478,8 +492,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       const res = await recognizeFaceUploadApi(faceFile);
       if (journeySeqRef.current !== seq) return;
       if (res.face_detected) {
-        setNarrative("Face captured. Thank you. Now completing the verification...");
-        speak("Face captured. Thank you.", mutedRef.current);
+        setNarrative("Face captured. Thank you.");
+        speak("Face captured.", mutedRef.current);
         await runScan(faceFile, "face");
       } else {
         fail(
@@ -620,7 +634,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
             ) : phase === "face_scan" && cameraError && !streamRef.current ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-6 text-center">
                 <span className="text-sm text-muted-foreground">{cameraError}</span>
-                <Button size="sm" variant="outline" onClick={() => { void startCamera(); }} className="gap-1.5">
+                <Button size="sm" variant="outline" onClick={() => { cameraRetryRef.current = 0; void startCamera(); }} className="gap-1.5">
                   <Camera className="h-3.5 w-3.5" /> Enable Camera
                 </Button>
               </div>
@@ -633,8 +647,19 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                 Uploaded image
               </div>
             ) : cameraError ? (
-              <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
-                {cameraError}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <span className="text-sm text-muted-foreground">{cameraError}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => {
+                    cameraRetryRef.current = 0;
+                    void startCamera();
+                  }}
+                >
+                  <Camera className="h-3.5 w-3.5" /> Enable Camera
+                </Button>
               </div>
             ) : null}
             {/* Face placement guide */}
@@ -698,7 +723,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                 ? <><XCircle className="h-4 w-4" /> ACCESS DENIED</>
                 : apiResult.decision?.decision === "denied"
                   ? <><XCircle className="h-4 w-4" /> ACCESS DENIED</>
-                  : <><AlertTriangle className="h-4 w-4" /> ENTRY BLOCKED</>)}
+                  : <><AlertTriangle className="h-4 w-4" /> GATE BLOCKED</>)}
               {outcomeColor === "warning" && <><AlertTriangle className="h-4 w-4" /> MANUAL REVIEW REQUIRED</>}
             </div>
           )}
@@ -807,9 +832,13 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                   ? "Could not capture after retries"
                   : !requireFace
                     ? "Face not part of this check"
-                    : apiResult.face?.similarity
-                      ? `${apiResult.face.similarity.toFixed(0)}% match`
-                      : "No match data"}
+                    : apiResult.face?.match_source === "session" && apiResult.face?.similarity
+                      ? `${apiResult.face.similarity.toFixed(0)}% match with entry driver`
+                      : apiResult.face?.similarity
+                        ? `${apiResult.face.similarity.toFixed(0)}% match`
+                        : apiResult.gate?.success === false && apiResult.gate?.error
+                          ? apiResult.gate.error
+                          : "No match data"}
               </p>
             </div>
             <div className="rounded-xl border border-border bg-elevated/60 p-4 text-center">

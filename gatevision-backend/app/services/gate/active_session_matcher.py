@@ -19,6 +19,7 @@ class MatchResult:
     plate_score: float = 0.0
     vehicle_score: Optional[float] = None
     face_score: Optional[float] = None
+    face_mismatch: bool = False
     reason: str = ""
     candidates: list = field(default_factory=list)
 
@@ -37,6 +38,7 @@ class MatchResult:
                 round(self.face_score, 3)
                 if self.face_score is not None else None
             ),
+            "face_mismatch": self.face_mismatch,
             "reason": self.reason,
             "candidates": self.candidates,
         }
@@ -58,6 +60,7 @@ class ActiveSessionMatcher:
         face_weight: Optional[float] = None,
         threshold: Optional[float] = None,
         embedding_fallback_threshold: Optional[float] = None,
+        face_require_threshold: Optional[float] = None,
     ):
         self._plate_weight = (
             plate_weight or settings.SESSION_MATCH_PLATE_WEIGHT
@@ -70,6 +73,11 @@ class ActiveSessionMatcher:
         self._fallback = (
             embedding_fallback_threshold
             or settings.SESSION_MATCH_EMBEDDING_FALLBACK_THRESHOLD
+        )
+        self._face_require = (
+            face_require_threshold
+            if face_require_threshold is not None
+            else settings.SESSION_MATCH_FACE_REQUIRE_THRESHOLD
         )
         self._similarity = SimilarityEngine()
         self._repo = GateSessionRepository()
@@ -136,9 +144,16 @@ class ActiveSessionMatcher:
         )
 
         matched = self._is_match(best, query_plate)
+        face_mismatch = False
         if matched:
-            reason = "Exact plate match on active session"
-            if best["plate_score"] == 0.0:
+            face_score = best.get("face_score")
+            if face_score is not None and face_score < self._face_require:
+                matched = False
+                face_mismatch = True
+                reason = "Face does not match the entry driver"
+            elif best["plate_score"] == 1.0:
+                reason = "Exact plate match on active session"
+            else:
                 reason = "Embedding match on active session (plate differs)"
         else:
             reason = "No active session matched within threshold"
@@ -150,6 +165,7 @@ class ActiveSessionMatcher:
             plate_score=best["plate_score"],
             vehicle_score=best.get("vehicle_score"),
             face_score=best.get("face_score"),
+            face_mismatch=face_mismatch,
             reason=reason,
             candidates=candidates,
         )

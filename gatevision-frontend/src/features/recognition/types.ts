@@ -56,6 +56,7 @@ export interface FaceMatch {
   matchedDriver?: string;
   similarity: number;
   embeddingDistance: number;
+  matchSource?: "gallery" | "session";
 }
 
 export interface VehicleFingerprint {

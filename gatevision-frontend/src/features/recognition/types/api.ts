@@ -39,6 +39,7 @@ export interface ApiFaceData {
   recognition_time_ms: number;
   reference_image_url?: string;
   captured_image_url?: string;
+  match_source?: "gallery" | "session";
 }
 
 export interface ApiVehicleFingerprint {
@@ -113,6 +114,15 @@ export interface ApiGateWorkflow {
   vehicle_id?: string;
   message?: string;
   error?: string;
+  match?: {
+    matched?: boolean;
+    score?: number | null;
+    plate_score?: number | null;
+    vehicle_score?: number | null;
+    face_score?: number | null;
+    face_mismatch?: boolean;
+    reason?: string;
+  };
 }
 
 export interface ApiTimestamps {

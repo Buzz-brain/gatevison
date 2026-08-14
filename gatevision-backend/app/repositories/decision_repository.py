@@ -36,6 +36,22 @@ class DecisionRepository:
         return await DecisionRecord.find_all().count()
 
     @staticmethod
+    async def update_decision(
+        request_id: str,
+        decision: str,
+        explanation: str,
+    ) -> bool:
+        record = await DecisionRecord.find_one(
+            DecisionRecord.request_id == request_id
+        )
+        if record is None:
+            return False
+        record.decision = decision
+        record.explanation = explanation
+        await record.save()
+        return True
+
+    @staticmethod
     async def delete_by_id(record_id: str) -> bool:
         record = await DecisionRecord.get(record_id)
         if record is None:

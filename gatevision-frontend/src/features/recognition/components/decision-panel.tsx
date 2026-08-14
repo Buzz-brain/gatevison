@@ -139,7 +139,7 @@ function DecisionPanel({ decision, mode = "entry", gate = null }: DecisionPanelP
               {gate.transactionId ? ` · txn ${gate.transactionId.slice(0, 8)}` : ""}
             </p>
             {gate.message && (
-              <p className="mt-1 text-xs text-muted-foreground/80">{gate.message}</p>
+              <p className="mt-1 text-xs text-muted-foreground/80">{gate.error ?? gate.message}</p>
             )}
           </div>
         )}

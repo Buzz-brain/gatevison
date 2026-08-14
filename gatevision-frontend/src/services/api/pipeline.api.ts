@@ -88,6 +88,7 @@ function mapGate(raw: Record<string, unknown> | undefined): ApiPipelineResult["g
   const action = String(raw.action ?? "");
   const session = raw.session as Record<string, unknown> | undefined;
   const transaction = raw.transaction as Record<string, unknown> | undefined;
+  const match = (session?.match ?? undefined) as Record<string, unknown> | undefined;
   return {
     gate_action: success ? "open" : action === "DENY" || action === "EXIT_DENIED" ? "closed" : "pending",
     session_id: (session?.session_id as string) ?? (session?.id as string) ?? undefined,
@@ -99,6 +100,17 @@ function mapGate(raw: Record<string, unknown> | undefined): ApiPipelineResult["g
     vehicle_id: (raw.vehicle_id as string) ?? undefined,
     message: (raw.message as string) ?? undefined,
     error: (raw.error as string) ?? undefined,
+    match: match
+      ? {
+          matched: match.matched === true,
+          score: match.score != null ? Number(match.score) : null,
+          plate_score: match.plate_score != null ? Number(match.plate_score) : null,
+          vehicle_score: match.vehicle_score != null ? Number(match.vehicle_score) : null,
+          face_score: match.face_score != null ? Number(match.face_score) : null,
+          face_mismatch: match.face_mismatch === true,
+          reason: match.reason as string | undefined,
+        }
+      : undefined,
   };
 }
 
@@ -137,8 +149,26 @@ function normalizePipelineResult(raw: RawPipelineData, backendSuccess: boolean):
   });
 
   const plate = raw.recognized_plates?.[0];
-  const face = raw.face_recognitions?.[0];
+  const faceRaw = raw.face_recognitions?.[0];
   const fingerprint = raw.vehicle_fingerprints?.[0];
+  const gate = mapGate(raw.gate_workflow_result);
+  const sessionFaceScore = gate?.match?.face_score;
+
+  let face: ApiPipelineResult["face"] = null;
+  if (faceRaw) {
+    face = {
+      detected: faceRaw.face_detected,
+      similarity: Math.round((faceRaw.similarity_score ?? 0) * 100),
+      embedding_distance: faceRaw.embedding_distance ?? 0,
+      recognition_time_ms: 0,
+      matched_driver_id: faceRaw.matched_driver_id ?? undefined,
+      matched_driver_name: faceRaw.matched_driver_name ?? undefined,
+    };
+    if (sessionFaceScore != null) {
+      face.similarity = Math.round(sessionFaceScore * 100);
+      face.match_source = "session";
+    }
+  }
 
   return {
     id: raw.request_id,
@@ -161,14 +191,7 @@ function normalizePipelineResult(raw: RawPipelineData, backendSuccess: boolean):
       format: "NIGERIA",
       validated_at: "",
     } : null,
-    face: face ? {
-      detected: face.face_detected,
-      similarity: Math.round((face.similarity_score ?? 0) * 100),
-      embedding_distance: face.embedding_distance ?? 0,
-      recognition_time_ms: 0,
-      matched_driver_id: face.matched_driver_id ?? undefined,
-      matched_driver_name: face.matched_driver_name ?? undefined,
-    } : null,
+    face,
     vehicle: fingerprint && fingerprint.dimension > 0 ? {
       detected_model: "ResNet50",
       similarity: 0,
@@ -183,7 +206,7 @@ function normalizePipelineResult(raw: RawPipelineData, backendSuccess: boolean):
     explainable_ai: null,
     evidence: [],
     pipeline_stages,
-    gate: mapGate(raw.gate_workflow_result),
+    gate,
     timestamps: null,
     total_processing_time_ms: raw.processing_time_ms,
     created_at: createdAt,
@@ -196,6 +219,7 @@ export async function processPipelineUploadApi(
   onProgress?: (pct: number) => void,
   requireFace?: boolean,
   faceFile?: File,
+  finalize?: boolean,
 ): Promise<ApiPipelineResult> {
   try {
     const formData = new FormData();
@@ -203,6 +227,7 @@ export async function processPipelineUploadApi(
     if (faceFile) formData.append("face_file", faceFile);
     const params: Record<string, string> = { direction };
     if (requireFace !== undefined) params.require_face = String(requireFace);
+    if (finalize !== undefined) params.finalize = String(finalize);
     const response = await api.post<{ success: boolean; data: RawPipelineData; message: string }>(
       ENDPOINTS.PIPELINE.PROCESS_UPLOAD,
       formData,
@@ -225,10 +250,14 @@ export async function processPipelineUploadApi(
 export async function processPipelineCameraApi(
   direction: "entry" | "exit" = "entry",
   requireFace?: boolean,
+  cameraId?: string,
+  finalize?: boolean,
 ): Promise<ApiPipelineResult> {
   try {
     const params: Record<string, string> = { direction };
     if (requireFace !== undefined) params.require_face = String(requireFace);
+    if (cameraId !== undefined && cameraId !== "default") params.camera_id = cameraId;
+    if (finalize !== undefined) params.finalize = String(finalize);
     const response = await api.post<{ success: boolean; data: RawPipelineData; message: string }>(
       ENDPOINTS.PIPELINE.PROCESS_CAMERA,
       undefined,

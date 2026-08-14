@@ -98,6 +98,31 @@ async def test_count(mock_model):
 
 
 @pytest.mark.asyncio
+async def test_update_decision_found(mock_model):
+    mock_record = MagicMock()
+    mock_record.save = AsyncMock()
+    mock_model.find_one = MagicMock(return_value=FakeAwaitable(mock_record))
+
+    repo = DecisionRepository()
+    ok = await repo.update_decision("req-1", "DENY", "Gate: rejected")
+
+    assert ok is True
+    assert mock_record.decision == "DENY"
+    assert mock_record.explanation == "Gate: rejected"
+    mock_record.save.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_decision_not_found(mock_model):
+    mock_model.find_one = MagicMock(return_value=FakeAwaitable(None))
+
+    repo = DecisionRepository()
+    ok = await repo.update_decision("req-x", "DENY", "Gate: rejected")
+
+    assert ok is False
+
+
+@pytest.mark.asyncio
 async def test_statistics(mock_model):
     def find_side_effect(*args, **kwargs):
         m = MagicMock()

@@ -67,6 +67,7 @@ function mapFaceData(f: ApiFaceData | null): FaceMatch | null {
     matchedDriver: f.matched_driver_name ?? f.matched_driver_id,
     similarity: f.similarity,
     embeddingDistance: f.embedding_distance,
+    matchSource: f.match_source,
   };
 }
 

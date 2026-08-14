@@ -103,6 +103,24 @@ async def test_validate_exit_session_no_match(session):
 
 
 @pytest.mark.asyncio
+async def test_validate_exit_session_face_mismatch(session):
+    svc, session_svc, _ = build_service()
+    match = MatchResult(
+        matched=False,
+        face_mismatch=True,
+        face_score=0.12,
+        reason="Face does not match the entry driver",
+    )
+    svc._matcher.find_best_match = AsyncMock(return_value=match)
+
+    with pytest.raises(SessionGateError, match="Face does not match"):
+        await svc.validate_exit_session(
+            plate_text="ABC-1234", face_embedding=[0.0, 1.0],
+        )
+    session_svc.close_session_by_id.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_validate_exit_session_not_grant():
     svc, _, _ = build_service()
     with pytest.raises(SessionGateError, match="only GRANT allowed"):
