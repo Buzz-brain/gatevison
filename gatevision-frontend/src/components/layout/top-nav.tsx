@@ -11,13 +11,11 @@ import {
   Command,
   Play,
   Monitor,
-  Presentation,
 } from "lucide-react";
 import { useSidebarStore } from "@/store/sidebar-store";
 import { useThemeStore } from "@/store/theme-store";
 import { useAuthStore } from "@/store/auth-store";
 import { useNotificationStore } from "@/store/notification-store";
-import { useDemoStore } from "@/store/demo-store";
 import { usePresentationStore } from "@/store/presentation-store";
 import { useIsMobile } from "@/hooks/use-breakpoint";
 import { Button } from "@/components/ui/button";
@@ -40,15 +38,13 @@ interface TopNavProps {
 }
 
 const routeTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/live-monitoring": "Live Monitoring",
-  "/access-control": "Access Control",
-  "/identity": "Identity",
+  "/": "Recognition Center",
+  "/recognition": "Recognition Center",
   "/gate-operations": "Gate Operations",
+  "/identity": "Identity Management",
   "/reports": "Reports",
   "/system": "System",
   "/settings": "Settings",
-  "/demo": "Demo Center",
 };
 
 function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: TopNavProps) {
@@ -59,7 +55,6 @@ function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: Top
   const isMobile = useIsMobile();
   const location = useLocation();
 
-  const { startDemo, isActive: isDemoActive } = useDemoStore();
   const { toggle: togglePresentation, isActive: isPresentationActive } = usePresentationStore();
 
   const pageTitle = routeTitles[location.pathname] || "GateVision";
@@ -121,15 +116,6 @@ function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: Top
           <Moon className="h-4 w-4" />
         )}
       </Button>
-
-      {/* Demo Center */}
-      <Tooltip content="Demo Center">
-        <Button variant="ghost" size="icon" asChild aria-label="Open Demo Center">
-          <Link to="/demo">
-            <Presentation className="h-4 w-4" />
-          </Link>
-        </Button>
-      </Tooltip>
 
       {/* Presentation Mode */}
       <Tooltip content="Presentation Mode">

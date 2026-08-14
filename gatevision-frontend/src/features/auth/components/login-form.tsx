@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Eye,
@@ -23,6 +24,7 @@ import {
 
 function LoginForm() {
   const { login, isLoading, error, remainingAttempts, clearError } = useAuthStore();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -218,7 +220,7 @@ function LoginForm() {
             </label>
             <button
               type="button"
-              onClick={() => {}}
+              onClick={() => navigate({ to: "/forgot-password" })}
               className="text-sm text-primary hover:text-primary/80 transition-colors"
             >
               Forgot password?

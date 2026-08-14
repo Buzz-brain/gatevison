@@ -1,42 +1,22 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Filter, Save, RotateCcw, Bookmark } from "lucide-react";
+import { X, Filter, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
-  PERIOD_LABELS,
   DECISION_CONFIG,
 } from "../utils";
 import {
-  GATE_IDS,
-  GATE_NAMES,
-  DEPARTMENTS,
-  VEHICLE_TYPES,
-  POLICY_TYPES,
   DECISION_TYPES,
-  RECOGNITION_STATUS,
   type FilterState,
-  type PeriodKey,
-  type SavedView,
 } from "../types";
 
 interface FilterBarProps {
   filters: FilterState;
   setFilters: (patch: Partial<FilterState>) => void;
   resetFilters: () => void;
-  savedViews: SavedView[];
-  applyView: (id: string) => void;
-  saveView: (name: string) => void;
 }
-
-const PERIOD_OPTIONS = (Object.keys(PERIOD_LABELS) as PeriodKey[]).map((p) => ({
-  value: p,
-  label: PERIOD_LABELS[p]!,
-}));
-
-const gateOptions = GATE_IDS.map((g) => ({ value: g, label: GATE_NAMES[g]! }));
 
 function toggleInArray<T>(arr: T[], value: T): T[] {
   return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
@@ -46,18 +26,8 @@ export function FilterBar({
   filters,
   setFilters,
   resetFilters,
-  savedViews,
-  applyView,
-  saveView,
 }: FilterBarProps) {
   const chips: { key: string; label: string; onRemove: () => void }[] = [];
-  filters.gates.forEach((g) =>
-    chips.push({
-      key: `gate-${g}`,
-      label: GATE_NAMES[g]!,
-      onRemove: () => setFilters({ gates: filters.gates.filter((x) => x !== g) }),
-    }),
-  );
   filters.decisions.forEach((d) =>
     chips.push({
       key: `dec-${d}`,
@@ -76,59 +46,9 @@ export function FilterBar({
   const hasChips = chips.length > 0;
 
   return (
-    <div className="rounded-xl border border-border bg-elevated p-3 shadow-card">
+    <div className="rounded-xl border border-border bg-elevated p-4 shadow-card">
       <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-[140px] flex-1">
-          <Label>Date Range</Label>
-          <Select
-            options={PERIOD_OPTIONS}
-            value={filters.period}
-            onChange={(e) => setFilters({ period: e.target.value as PeriodKey })}
-          />
-        </div>
-        <div className="min-w-[140px] flex-1">
-          <Label>Gate</Label>
-          <Select
-            placeholder="All gates"
-            options={gateOptions}
-            value={filters.gates[0] ?? ""}
-            onChange={(e) =>
-              setFilters({ gates: e.target.value ? [e.target.value as FilterState["gates"][number]] : [] })
-            }
-          />
-        </div>
-        <div className="min-w-[140px] flex-1">
-          <Label>Vehicle Type</Label>
-          <Select
-            placeholder="All types"
-            options={VEHICLE_TYPES.map((v) => ({ value: v, label: v }))}
-            value={filters.vehicleTypes[0] ?? ""}
-            onChange={(e) =>
-              setFilters({ vehicleTypes: e.target.value ? [e.target.value] : [] })
-            }
-          />
-        </div>
-        <div className="min-w-[140px] flex-1">
-          <Label>Department</Label>
-          <Select
-            placeholder="All departments"
-            options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
-            value={filters.departments[0] ?? ""}
-            onChange={(e) =>
-              setFilters({ departments: e.target.value ? [e.target.value] : [] })
-            }
-          />
-        </div>
-        <div className="min-w-[140px] flex-1">
-          <Label>Policy</Label>
-          <Select
-            placeholder="All policies"
-            options={POLICY_TYPES.map((p) => ({ value: p, label: p }))}
-            value={filters.policies[0] ?? ""}
-            onChange={(e) => setFilters({ policies: e.target.value ? [e.target.value] : [] })}
-          />
-        </div>
-        <div className="min-w-[140px] flex-1">
+        <div className="min-w-[180px] flex-1">
           <Label>Decision</Label>
           <Select
             placeholder="All decisions"
@@ -142,21 +62,10 @@ export function FilterBar({
             }
           />
         </div>
-        <div className="min-w-[140px] flex-1">
-          <Label>Recognition</Label>
-          <Select
-            placeholder="All status"
-            options={RECOGNITION_STATUS.map((s) => ({ value: s, label: s.replace("_", " ") }))}
-            value={filters.recognitionStatus[0] ?? ""}
-            onChange={(e) =>
-              setFilters({ recognitionStatus: e.target.value ? [e.target.value] : [] })
-            }
-          />
-        </div>
-        <div className="min-w-[160px] flex-1">
+        <div className="min-w-[220px] flex-1">
           <Label>Search</Label>
           <Input
-            placeholder="Driver or vehicle"
+            placeholder="Plate, driver, or request ID"
             value={filters.search}
             onChange={(e) => setFilters({ search: e.target.value })}
           />
@@ -166,27 +75,7 @@ export function FilterBar({
             <RotateCcw className="h-3.5 w-3.5" />
             Reset
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => saveView(`View ${savedViews.length + 1}`)}>
-            <Save className="h-3.5 w-3.5" />
-            Save
-          </Button>
         </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Bookmark className="h-3.5 w-3.5" />
-          Saved:
-        </span>
-        {savedViews.map((v) => (
-          <button
-            key={v.id}
-            onClick={() => applyView(v.id)}
-            className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-          >
-            {v.name}
-          </button>
-        ))}
       </div>
 
       <AnimatePresence>

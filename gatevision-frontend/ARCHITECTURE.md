@@ -4,6 +4,8 @@
 
 GateVision is a single-page application (SPA) that communicates with a Python FastAPI backend. The frontend is built with React 19 and TypeScript, using TanStack Router for navigation and React Query for server state management.
 
+Gate decisions run on a **session-based verification model** by default (Mode A): every vehicle is tracked through an explicit entry -> inside -> exit session lifecycle keyed on the observed license plate. The backend also supports Mode B (identity verification against registered profiles) for future enterprise deployments.
+
 ## Architecture Diagram
 
 ```
@@ -34,8 +36,44 @@ GateVision is a single-page application (SPA) that communicates with a Python Fa
 │  │ Auth     │  │ AI       │  │ Identity │  │ Gate     │   │
 │  │ Service  │  │ Pipeline │  │ Service  │  │ Control  │   │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│     Gate Control (Mode A session-based, default):           │
+│       SessionGateService -> create_entry_session /          │
+│         validate_exit_session                                │
+│       SessionVerificationService -> capture quality check    │
+│       ActiveSessionMatcher -> exit matching (plate .5,       │
+│         vehicle .3, face .2, threshold .55)                  │
+│       GateSession (OUTSIDE -> INSIDE -> OUTSIDE)             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Gate Session Lifecycle (Mode A - Session Verification)
+
+```
+Plate observed at gate -> signal capture (OCR plate, face/vehicle embeddings)
+        |
+        v
+POST /gate/entry -> SessionVerificationService verifies capture quality
+                  -> SessionGateService.create_entry_session()
+        |
+        v
+GateSession opened (OUTSIDE -> INSIDE; embeddings stored) + ENTRY transaction
+        |
+        v   (vehicle parked inside)
+POST /gate/exit -> ActiveSessionMatcher.find_best_match() against active sessions
+        |          (plate 0.50 + vehicle 0.30 + face 0.20, threshold >= 0.55)
+        |
+        v
+On match: session closed (INSIDE -> OUTSIDE, exit confidence stored) + EXIT transaction
+On no match: exit rejected (no exit without an entry session)
+```
+
+- Session identity is the plate; `vehicle_id` stores the observed plate in Mode A.
+- Only a `GRANT` decision opens/closes a session; `DENY` produces no session.
+- The frontend polls `GET /gate/active` (5s) and `GET /gate/transactions` (10s); the Gate Operations UI filters to `current_state === "INSIDE"` for the live sessions panel.
+
+### Mode B - Identity Verification (future enterprise deployment)
+
+Backend routes branch on `DECISION_MODE` (default `"session"`). With `DECISION_MODE="identity"`, gate entry/exit resolve against registered driver/vehicle profiles using `vehicle_id` / `driver_id` instead of the observed plate. Frontend wiring for Mode B is not active yet.
 
 ## State Architecture
 

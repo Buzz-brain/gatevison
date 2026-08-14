@@ -1,7 +1,7 @@
 import { get } from "@/lib/api/api-client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { normalizeError } from "@/lib/api/errors";
-import type { ApiAnalytics } from "@/features/dashboard/types/api";
+import type { ApiAnalytics } from "@/services/api/types";
 import type { ApiAnalyticsSummary } from "@/features/reports/api/types";
 import type { NormalizedError } from "@/types/api";
 

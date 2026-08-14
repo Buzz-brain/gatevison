@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/lib/api/query-client";
 import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi } from "@/services/api/pipeline.api";
-import { getRecognitionHistoryApi, getRecognitionResultApi, getModelStatusApi } from "@/services/api/recognition.api";
+import { getRecognitionHistoryApi, getRecognitionResultApi, getModelStatusApi, deleteRecognitionHistoryEntryApi, clearRecognitionHistoryApi } from "@/services/api/recognition.api";
 import { mapPipelineResult, mapHistoryEntry } from "../api/mapper";
 import type { RecognitionResult, RecognitionHistoryEntry } from "../types";
 import type { ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiModelStatus } from "../types/api";
@@ -10,8 +10,8 @@ export function useProcessPipeline() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (file: File): Promise<ApiPipelineResult> => {
-      return processPipelineUploadApi(file);
+    mutationFn: async (args: { file: File; direction?: "entry" | "exit"; requireFace?: boolean; faceFile?: File }): Promise<ApiPipelineResult> => {
+      return processPipelineUploadApi(args.file, args.direction ?? "entry", undefined, args.requireFace, args.faceFile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recognition"] });
@@ -63,6 +63,30 @@ export function useRecognitionHistory(page = 1, search?: string, decision?: stri
       };
     },
     staleTime: 10_000,
+  });
+}
+
+export function useDeleteHistoryEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recordId: string) => deleteRecognitionHistoryEntryApi(recordId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recognition", "history"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.TRANSACTIONS });
+    },
+  });
+}
+
+export function useClearHistory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => clearRecognitionHistoryApi(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recognition", "history"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.TRANSACTIONS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.STATISTICS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.ACTIVE });
+    },
   });
 }
 

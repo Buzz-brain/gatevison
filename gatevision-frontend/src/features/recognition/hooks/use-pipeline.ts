@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { PipelineStage, StageState, StageStatus } from "../types";
 import type { ApiPipelineStatus, ApiPipelineStage } from "../types/api";
 
@@ -46,27 +46,15 @@ interface UsePipelineReturn {
 }
 
 function usePipeline(opts: UsePipelineOptions = {}): UsePipelineReturn {
-  const {
-    autoStart = false,
-    speed = 1,
-  } = opts;
-
   const [stages, setStages] = useState<StageState[]>(DEFAULT_STAGES);
   const [activeStageIndex, setActiveStageIndex] = useState(-1);
-  const [isRunning, setIsRunning] = useState(autoStart);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const clearTimers = useCallback(() => {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-  }, []);
+  const [isRunning, setIsRunning] = useState(false);
 
   const reset = useCallback(() => {
-    clearTimers();
     setStages(DEFAULT_STAGES);
     setActiveStageIndex(-1);
     setIsRunning(false);
-  }, [clearTimers]);
+  }, []);
 
   const start = useCallback(() => {
     reset();
@@ -74,7 +62,6 @@ function usePipeline(opts: UsePipelineOptions = {}): UsePipelineReturn {
   }, [reset]);
 
   const skipTo = useCallback((index: number) => {
-    clearTimers();
     setStages((prev) =>
       prev.map((s, i) => ({
         ...s,
@@ -88,7 +75,7 @@ function usePipeline(opts: UsePipelineOptions = {}): UsePipelineReturn {
     if (index >= STAGE_ORDER.length - 1) {
       setIsRunning(false);
     }
-  }, [clearTimers]);
+  }, []);
 
   const applyBackendStatus = useCallback((status: ApiPipelineStatus | null) => {
     if (!status) return;
@@ -151,44 +138,6 @@ function usePipeline(opts: UsePipelineOptions = {}): UsePipelineReturn {
     const allDone = newStages.every((s) => s.status === "completed" || s.status === "failed" || s.status === "manual_review");
     if (allDone) setIsRunning(false);
   }, []);
-
-  useEffect(() => {
-    if (!isRunning) return;
-    const delays = STAGE_ORDER.map((_, i) => (i + 1) * (600 / speed));
-
-    STAGE_ORDER.forEach((_stage, i) => {
-      const timer = setTimeout(() => {
-        setStages((prev) =>
-          prev.map((s, j) => ({
-            ...s,
-            status: j < i ? "completed" as StageStatus :
-                    j === i ? "processing" as StageStatus :
-                    "inactive" as StageStatus,
-            progress: j < i ? 100 : j === i ? 50 : 0,
-          })),
-        );
-        setActiveStageIndex(i);
-
-        setTimeout(() => {
-          setStages((prev) =>
-            prev.map((s, j) => {
-              if (j !== i) return s;
-              return { ...s, status: "completed" as StageStatus, progress: 100 };
-            }),
-          );
-        }, (delays[0] || 600) / 2);
-      }, delays[i] || (600 / speed));
-      timers.current.push(timer);
-    });
-
-    const lastTimer = setTimeout(() => {
-      setIsRunning(false);
-    }, (STAGE_ORDER.length + 1) * (600 / speed));
-
-    timers.current.push(lastTimer);
-
-    return clearTimers;
-  }, [isRunning, speed, clearTimers]);
 
   return {
     stages,

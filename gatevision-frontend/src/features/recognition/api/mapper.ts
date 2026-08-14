@@ -1,7 +1,7 @@
 import type {
   RecognitionResult, StageState, DetectionOverlay, CroppedResult,
   OCRResult, FaceMatch, VehicleFingerprint, DecisionResult,
-  ExplainableAIData, EvidenceItem, TimelineEvent,
+  ExplainableAIData, EvidenceItem, TimelineEvent, GateOutcome,
   RecognitionHistoryEntry, BoundingBox, PipelineStage,
 } from "../types";
 import type {
@@ -9,7 +9,7 @@ import type {
   ApiPipelineStage, ApiBoundingBox, ApiDetectionResult,
   ApiCroppedResult, ApiOCRData, ApiFaceData,
   ApiVehicleFingerprint, ApiDecisionData, ApiExplainableAI,
-  ApiEvidenceItem, ApiTimestamps,
+  ApiEvidenceItem, ApiTimestamps, ApiGateWorkflow,
 } from "../types/api";
 
 const STAGE_ORDER_MAP: Record<string, PipelineStage> = {
@@ -89,6 +89,19 @@ function mapDecisionData(d: ApiDecisionData | null): DecisionResult | null {
     reason: d.reason,
     explanation: d.explanation,
     recommendedAction: d.recommended_action,
+  };
+}
+
+function mapGateOutcome(g: ApiGateWorkflow | null): GateOutcome | null {
+  if (!g) return null;
+  return {
+    success: g.success ?? g.gate_action === "open",
+    action: g.action ?? "",
+    vehicleId: g.vehicle_id,
+    message: g.message,
+    error: g.error,
+    sessionId: g.session_id,
+    transactionId: g.transaction_id,
   };
 }
 
@@ -211,7 +224,7 @@ export function mapPipelineResult(data: ApiPipelineResult): RecognitionResult {
 
   return {
     id: data.id,
-    scenarioId: data.id,
+    pipelineId: data.id,
     frameUrl: data.image_url,
     croppedVehicle: mapCroppedResult(data.cropped_vehicle, "Vehicle", vehicleConfidence),
     croppedPlate: mapCroppedResult(data.cropped_plate, "Plate", ocrConfidence),
@@ -229,6 +242,7 @@ export function mapPipelineResult(data: ApiPipelineResult): RecognitionResult {
       decision: "manual_review", confidence: 0, reason: "No decision data",
       explanation: "", recommendedAction: "Review manually",
     },
+    gate: mapGateOutcome(data.gate),
     explainableAI: mapExplainableAI(data.explainable_ai),
     evidence: mapEvidenceItems(data.evidence),
     timestamp: data.created_at,
@@ -246,8 +260,9 @@ export function mapHistoryEntry(entry: ApiRecognitionHistoryEntry): RecognitionH
     vehicle: entry.vehicle,
     decision: entry.decision,
     confidence: entry.confidence,
+    direction: entry.direction,
     timestamp: entry.timestamp,
-    scenarioId: entry.pipeline_id,
+    pipelineId: entry.pipeline_id,
   };
 }
 

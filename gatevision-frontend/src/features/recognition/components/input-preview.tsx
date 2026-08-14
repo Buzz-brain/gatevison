@@ -12,9 +12,9 @@ interface InputPreviewProps {
   activeStage?: string;
   imageUrl?: string;
   metadata?: {
-    resolution: string;
-    fileSize: string;
-    captureTime: string;
+    resolution?: string;
+    fileSize?: string;
+    captureTime?: string;
   };
 }
 
@@ -107,18 +107,24 @@ function InputPreview({ overlay, activeStage, imageUrl, metadata }: InputPreview
       {/* Metadata */}
       {showMeta && metadata && (
         <div className="rounded-lg border border-border bg-surface p-3 text-xs">
-          <div className="flex justify-between py-0.5">
-            <span className="text-muted-foreground/60">Resolution</span>
-            <span className="font-mono">{metadata.resolution}</span>
-          </div>
-          <div className="flex justify-between py-0.5">
-            <span className="text-muted-foreground/60">File Size</span>
-            <span className="font-mono">{metadata.fileSize}</span>
-          </div>
-          <div className="flex justify-between py-0.5">
-            <span className="text-muted-foreground/60">Capture Time</span>
-            <span className="font-mono">{metadata.captureTime}</span>
-          </div>
+          {metadata.resolution && (
+            <div className="flex justify-between py-0.5">
+              <span className="text-muted-foreground/60">Resolution</span>
+              <span className="font-mono">{metadata.resolution}</span>
+            </div>
+          )}
+          {metadata.fileSize && (
+            <div className="flex justify-between py-0.5">
+              <span className="text-muted-foreground/60">File Size</span>
+              <span className="font-mono">{metadata.fileSize}</span>
+            </div>
+          )}
+          {metadata.captureTime && (
+            <div className="flex justify-between py-0.5">
+              <span className="text-muted-foreground/60">Capture Time</span>
+              <span className="font-mono">{metadata.captureTime}</span>
+            </div>
+          )}
         </div>
       )}
     </div>

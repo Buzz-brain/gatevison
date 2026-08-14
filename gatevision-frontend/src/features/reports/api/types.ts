@@ -23,114 +23,82 @@ export interface ApiReportColumn {
   filterable: boolean;
 }
 
+// Backend GET /admin/reports
+export interface ApiReportTransaction {
+  transaction_id: string;
+  session_id: string | null;
+  vehicle_id: string | null;
+  driver_id: string | null;
+  action: string;
+  decision: string;
+  timestamp: string;
+  request_id: string | null;
+  gate_name: string | null;
+  notes: string | null;
+}
+
+export interface ApiReportData {
+  report_type: string;
+  total: number;
+  results: ApiReportTransaction[];
+  start_date: string;
+  end_date: string;
+}
+
+// Backend GET /admin/analytics
 export interface ApiAnalyticsSummary {
   hourly_traffic: ApiHourlyTraffic[];
-  daily_trends: ApiDailyTrendData[];
-  decision_breakdown: ApiDecisionBreakdownData[];
-  processing_metrics: ApiProcessingMetrics;
-  denial_trends: ApiDenialTrend[];
-  recognition_statistics: ApiRecognitionStatistics;
-  peak_hours: ApiPeakHourData[];
-  gate_comparison: ApiGateComparison[];
-  vehicle_distribution: ApiVehicleDistribution[];
-  manual_review_trend: ApiManualReviewTrend[];
+  daily_trend: ApiDailyTrendData[];
+  decision_breakdown: ApiDecisionBreakdownSummary;
+  processing_times: ApiProcessingTimes;
+  top_denied_vehicles: ApiTopDeniedVehicle[];
 }
 
 export interface ApiHourlyTraffic {
-  hour: string;
-  entries: number;
-  exits: number;
+  hour: number;
+  count: number;
 }
 
 export interface ApiDailyTrendData {
-  date: string;
+  _id: string;
+  count: number;
   entries: number;
   exits: number;
+}
+
+export interface ApiDecisionBreakdownSummary {
   total: number;
+  grants: number;
+  denials: number;
+  manual_reviews: number;
+  grant_rate: number;
+  denial_rate: number;
+  review_rate: number;
 }
 
-export interface ApiDecisionBreakdownData {
-  type: string;
-  count: number;
-  percentage: number;
-}
-
-export interface ApiProcessingMetrics {
+export interface ApiProcessingTimes {
   avg_processing_time_ms: number;
-  p50_ms: number;
-  p95_ms: number;
-  p99_ms: number;
-  throughput_per_second: number;
+  max_processing_time_ms: number;
+  total_decisions: number;
 }
 
-export interface ApiDenialTrend {
-  date: string;
-  count: number;
-  reason: string;
-}
-
-export interface ApiRecognitionStatistics {
-  plate_accuracy: number;
-  ocr_accuracy: number;
-  face_accuracy: number;
-  vehicle_accuracy: number;
-  total_processed: number;
-  avg_confidence: number;
-}
-
-export interface ApiPeakHourData {
-  hour: string;
-  entries: number;
-  exits: number;
-}
-
-export interface ApiGateComparison {
-  gate_id: string;
-  gate_name: string;
-  entries: number;
-  exits: number;
-  avg_wait_sec: number;
-  utilization_pct: number;
-}
-
-export interface ApiVehicleDistribution {
-  type: string;
+export interface ApiTopDeniedVehicle {
+  vehicle_id: string;
   count: number;
 }
 
-export interface ApiManualReviewTrend {
-  date: string;
-  count: number;
-  resolved: number;
-  pending: number;
-}
-
-export interface ApiExportRequest {
-  format: "csv" | "json" | "excel";
-  report_type?: string;
-  date_from?: string;
-  date_to?: string;
-  filters?: Record<string, string>;
-}
-
-export interface ApiExportResult {
-  id: string;
-  format: string;
-  status: "processing" | "completed" | "failed";
-  url?: string;
-  size_kb?: number;
-  rows?: number;
-  error?: string;
+// Backend GET /admin/manual-reviews
+export interface ApiManualReview {
+  review_id: string;
+  request_id: string;
+  vehicle_id: string | null;
+  driver_id: string | null;
+  status: string;
+  outcome: string | null;
+  reviewer_id: string | null;
+  reviewer_notes: string | null;
+  reviewed_at: string | null;
   created_at: string;
-}
-
-export interface ApiSearchResult {
-  id: string;
-  type: "vehicle" | "driver" | "plate" | "request" | "session" | "transaction" | "report";
-  label: string;
-  description: string;
-  score: number;
-  metadata: Record<string, string>;
 }
 
 export interface ApiManualReviewSummary {
@@ -144,35 +112,4 @@ export interface ApiManualReviewSummary {
   created_at: string;
   resolved_at: string | null;
   resolved_by: string | null;
-}
-
-export interface ApiEventSummary {
-  id: string;
-  type: string;
-  message: string;
-  severity: "info" | "warning" | "error" | "critical";
-  timestamp: string;
-  source: string;
-  metadata: Record<string, string>;
-}
-
-export interface ApiDecisionHistoryItem {
-  id: string;
-  plate: string;
-  driver: string;
-  vehicle: string;
-  decision: "granted" | "denied" | "manual_review";
-  confidence: number;
-  timestamp: string;
-  processing_ms: number;
-  stages: ApiDecisionStage[];
-}
-
-export interface ApiDecisionStage {
-  stage: string;
-  status: string;
-  label: string;
-  detail?: string;
-  confidence?: number;
-  timestamp?: string;
 }

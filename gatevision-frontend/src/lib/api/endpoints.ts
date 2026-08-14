@@ -28,32 +28,19 @@ export const ENDPOINTS = {
     DETECT_CAMERA: "/plate-detection/detect/camera",
     HISTORY: "/plate-detection/history",
   },
-  OCR: {
-    READ: "/ocr/read",
-    HISTORY: "/ocr/history",
-  },
-  FACE: {
-    RECOGNIZE_UPLOAD: "/face/recognize/upload",
-    RECOGNIZE_CAMERA: "/face/recognize/camera",
-    HISTORY: "/face/history",
-  },
-  VEHICLE: {
-    FINGERPRINT_UPLOAD: "/vehicle/fingerprint/upload",
-    FINGERPRINT_CAMERA: "/vehicle/fingerprint/camera",
-    STORE: "/vehicle/store",
-    LOOKUP: "/vehicle/lookup",
-    VERIFY: "/vehicle/verify",
-  },
   PIPELINE: {
     PROCESS_UPLOAD: "/pipeline/process/upload",
     PROCESS_CAMERA: "/pipeline/process/camera",
     STATUS: "/pipeline/status",
     METRICS: "/pipeline/metrics",
   },
-  DECISION: {
-    EVALUATE: "/decision/evaluate",
-    STATISTICS: "/decision/statistics",
-    HISTORY: "/decision/history",
+  FACE: {
+    ENROLL: "/face/enroll",
+    RECOGNIZE_UPLOAD: "/face/recognize/upload",
+    COMPARE: "/face/compare",
+    HISTORY: "/face/history",
+    MODEL_INFO: "/face/model-info",
+    HEALTH: "/face/health",
   },
   IDENTITY: {
     VERIFY: "/identity/verify",
@@ -86,16 +73,14 @@ export const ENDPOINTS = {
     STATISTICS: "/gate/statistics",
     ACTIVE: "/gate/active",
     TRANSACTIONS: "/gate/transactions",
+    SESSION: (id: string) => `/gate/session/${id}`,
   },
   DASHBOARD: {
     METRICS: "/admin/dashboard",
     ANALYTICS: "/admin/analytics",
     REPORTS: "/admin/reports",
-    EVENTS: "/admin/events",
   },
   ADMIN: {
-    SEARCH: "/admin/search",
-    EXPORT: "/admin/export",
     MANUAL_REVIEWS: "/admin/manual-reviews",
     APPROVE_REVIEW: (id: string) => `/admin/manual-review/${id}/approve`,
     REJECT_REVIEW: (id: string) => `/admin/manual-review/${id}/reject`,
@@ -104,18 +89,7 @@ export const ENDPOINTS = {
   SYSTEM: {
     HEALTH: "/system/health",
     MODELS: "/system/models",
-    DATABASE: "/system/health/database",
-    STORAGE_HEALTH: "/system/health/storage",
-    STORAGE_INFO: "/system/storage",
     PERFORMANCE: "/system/performance",
-    CONFIGURATION: "/system/configuration",
     VERSION: "/system/version",
-    LOG_STATISTICS: "/system/logs/statistics",
-    CLEANUP: "/system/storage/cleanup",
-    BACKUP: {
-      EXPORT: "/system/backup/export",
-      IMPORT: "/system/backup/import",
-      LIST: "/system/backups",
-    },
   },
 } as const;

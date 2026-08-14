@@ -1,49 +1,94 @@
 import { motion } from "framer-motion";
 import {
-  CheckCircle2, XCircle, AlertTriangle, Lightbulb, ShieldCheck,
+  CheckCircle2, XCircle, AlertTriangle, Lightbulb, ShieldCheck, LogIn, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { ConfidenceGauge } from "./confidence-gauge";
-import type { DecisionResult } from "../types";
+import type { DecisionResult, GateOutcome } from "../types";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface DecisionPanelProps {
   decision: DecisionResult | null;
+  mode?: "entry" | "exit";
+  gate?: GateOutcome | null;
 }
 
-const decisionConfig = {
-  granted: {
-    icon: CheckCircle2,
-    color: "text-success",
-    bg: "bg-success/5",
-    border: "border-success/30",
-    title: "ACCESS GRANTED",
-    glow: "shadow-[0_0_30px_rgba(34,197,94,0.15)]",
-  },
-  denied: {
-    icon: XCircle,
-    color: "text-danger",
-    bg: "bg-danger/5",
-    border: "border-danger/30",
-    title: "ACCESS DENIED",
-    glow: "shadow-[0_0_30px_rgba(239,68,68,0.15)]",
-  },
-  manual_review: {
-    icon: AlertTriangle,
-    color: "text-warning",
-    bg: "bg-warning/5",
-    border: "border-warning/30",
-    title: "MANUAL REVIEW",
-    glow: "shadow-[0_0_30px_rgba(245,158,11,0.15)]",
-  },
-};
-
-function DecisionPanel({ decision }: DecisionPanelProps) {
+function DecisionPanel({ decision, mode = "entry", gate = null }: DecisionPanelProps) {
   if (!decision) return null;
   const prefersReduced = useReducedMotion();
-  const config = decisionConfig[decision.decision];
+
+  const gateRejected = decision.decision === "granted" && gate !== null && gate.success === false;
+  const gateDetail = gate?.error ?? gate?.message ?? "";
+  const alreadyInside = gateRejected && /already inside|already in\b/i.test(gateDetail);
+  const alreadyOutside = gateRejected && /already outside|already out\b/i.test(gateDetail);
+
+  const grantedTitle =
+    gate?.success === true
+      ? gate.action === "EXIT" ? "SESSION VERIFIED" : "ENTRY SESSION CREATED"
+      : mode === "exit" ? "SESSION VERIFIED" : "ENTRY SESSION CREATED";
+  const reviewTitle = mode === "exit" ? "MATCH NEEDS REVIEW" : "MANUAL REVIEW";
+
+  const title = gateRejected
+    ? mode === "exit" ? "SESSION NOT CLOSED" : "ENTRY BLOCKED"
+    : decision.decision === "granted"
+      ? grantedTitle
+      : decision.decision === "denied"
+        ? "ACCESS DENIED"
+        : reviewTitle;
+
+  const subtitle = gateRejected
+    ? "Gate workflow rejected the session action"
+    : decision.decision === "granted"
+      ? gate?.success === true && gate.action === "EXIT"
+        ? "Active session matched and closed"
+        : gate?.success === true
+          ? "Vehicle session opened"
+          : mode === "exit"
+            ? "Active session matched and closed"
+            : "Vehicle session opened"
+      : decision.decision === "denied"
+        ? "Entry blocked"
+        : mode === "exit"
+          ? "No reliable session match"
+          : "Requires identity confirmation";
+
+  const decisionConfig = {
+    granted: {
+      icon: mode === "exit" ? LogOut : LogIn,
+      color: "text-success",
+      bg: "bg-success/5",
+      border: "border-success/30",
+      glow: "shadow-[0_0_30px_rgba(34,197,94,0.15)]",
+    },
+    denied: {
+      icon: XCircle,
+      color: "text-danger",
+      bg: "bg-danger/5",
+      border: "border-danger/30",
+      glow: "shadow-[0_0_30px_rgba(239,68,68,0.15)]",
+    },
+    manual_review: {
+      icon: AlertTriangle,
+      color: "text-warning",
+      bg: "bg-warning/5",
+      border: "border-warning/30",
+      glow: "shadow-[0_0_30px_rgba(245,158,11,0.15)]",
+    },
+  };
+
+  const config = decisionConfig[gateRejected ? "denied" : decision.decision];
   const Icon = config.icon;
+  const effectiveReason = gateRejected ? (gate?.error ?? gate?.message ?? decision.reason) : decision.reason;
+  const effectiveAction = gateRejected
+    ? alreadyInside
+      ? "Switch to Exit to close the open session"
+      : alreadyOutside
+        ? "Switch to Entry to open a session"
+        : mode === "exit"
+          ? "Do not close session - already inactive"
+          : "Do not allow through - duplicate entry"
+    : decision.recommendedAction;
 
   return (
     <motion.div
@@ -68,9 +113,9 @@ function DecisionPanel({ decision }: DecisionPanelProps) {
             <Icon className={cn("h-6 w-6", config.color)} />
           </motion.div>
           <div>
-            <p className={cn("text-lg font-bold tracking-wider", config.color)}>{config.title}</p>
+            <p className={cn("text-lg font-bold tracking-wider", config.color)}>{title}</p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
-              Decision Engine
+              {mode === "exit" ? "Session Match Engine" : "Session Engine"} — {subtitle}
             </p>
           </div>
         </div>
@@ -80,8 +125,24 @@ function DecisionPanel({ decision }: DecisionPanelProps) {
       <div className="mt-4 space-y-2">
         <div className="rounded-lg bg-surface p-3">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Reason</p>
-          <p className="text-sm">{decision.reason}</p>
+          <p className="text-sm">{effectiveReason}</p>
         </div>
+        {gate && !gateRejected && (
+          <div className="rounded-lg border border-border/60 bg-surface/60 p-3">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1 flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" />
+              Gate Workflow
+            </p>
+            <p className="text-sm font-medium">
+              {gate.action || "GATE"} · {gate.success ? "confirmed" : "failed"}
+              {gate.sessionId ? ` · session ${gate.sessionId.slice(0, 8)}` : ""}
+              {gate.transactionId ? ` · txn ${gate.transactionId.slice(0, 8)}` : ""}
+            </p>
+            {gate.message && (
+              <p className="mt-1 text-xs text-muted-foreground/80">{gate.message}</p>
+            )}
+          </div>
+        )}
         <div className="rounded-lg bg-surface p-3">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1 flex items-center gap-1">
             <Lightbulb className="h-3 w-3" />
@@ -93,7 +154,7 @@ function DecisionPanel({ decision }: DecisionPanelProps) {
           <ShieldCheck className={cn("h-4 w-4 shrink-0", config.color)} />
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">Recommended Action</p>
-            <p className="text-sm font-medium">{decision.recommendedAction}</p>
+            <p className="text-sm font-medium">{effectiveAction}</p>
           </div>
         </div>
       </div>

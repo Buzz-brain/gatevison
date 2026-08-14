@@ -86,16 +86,11 @@ function DetectionOverlay({ overlay, activeStage, imageUrl }: DetectionOverlayPr
         )}
       </AnimatePresence>
 
-      {/* Recording indicator */}
-      <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/50 px-2 py-1">
-        <div className="h-1.5 w-1.5 rounded-full bg-danger animate-pulse" />
-        <span className="text-[10px] font-mono text-white/90">REC</span>
-      </div>
-
-      {/* Frame info */}
-      <div className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 font-mono text-[10px] text-white/70">
-        480×270 · 30fps
-      </div>
+      {imageUrl && (
+        <div className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 font-mono text-[10px] text-white/70">
+          Captured frame
+        </div>
+      )}
     </div>
   );
 }

@@ -74,6 +74,16 @@ export interface DecisionResult {
   recommendedAction: string;
 }
 
+export interface GateOutcome {
+  success: boolean;
+  action: string;
+  vehicleId?: string;
+  message?: string;
+  error?: string;
+  sessionId?: string;
+  transactionId?: string;
+}
+
 export interface ExplainableAIData {
   plateMatch: { confidence: number; passed: boolean };
   driverMatch: { confidence: number; passed: boolean };
@@ -93,7 +103,7 @@ export interface EvidenceItem {
 
 export interface RecognitionResult {
   id: string;
-  scenarioId: string;
+  pipelineId: string;
   frameUrl: string;
   croppedVehicle: CroppedResult;
   croppedPlate: CroppedResult;
@@ -102,6 +112,7 @@ export interface RecognitionResult {
   face: FaceMatch;
   vehicle: VehicleFingerprint;
   decision: DecisionResult;
+  gate: GateOutcome | null;
   explainableAI: ExplainableAIData;
   evidence: EvidenceItem[];
   timestamp: string;
@@ -118,15 +129,6 @@ export interface TimelineEvent {
   detail?: string;
 }
 
-export interface RecognitionScenario {
-  id: string;
-  label: string;
-  description: string;
-  category: string;
-  frameUrl: string;
-  result: RecognitionResult;
-}
-
 export interface RecognitionHistoryEntry {
   id: string;
   plate: string;
@@ -134,8 +136,9 @@ export interface RecognitionHistoryEntry {
   vehicle: string;
   decision: "granted" | "denied" | "manual_review";
   confidence: number;
+  direction: "entry" | "exit";
   timestamp: string;
-  scenarioId: string;
+  pipelineId: string;
 }
 
 export interface PlaybackState {

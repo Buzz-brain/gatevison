@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { WifiOff, AlertTriangle, RefreshCw, LogIn } from "lucide-react";
+import { AlertTriangle, RefreshCw, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/store/auth-store";
@@ -40,18 +40,11 @@ function ApiErrorDisplay({
 function ApiErrorBoundary({ children }: ApiErrorBoundaryProps) {
   const { isAuthenticated, error } = useAuthStore();
 
-  if (!navigator.onLine) {
-    return (
-      <ApiErrorDisplay
-        icon={<WifiOff className="h-10 w-10 text-warning" />}
-        title="No Internet Connection"
-        message="You are currently offline. Please check your network connection and try again."
-        action={{ label: "Retry", onClick: () => window.location.reload() }}
-      />
-    );
-  }
-
-  if (error?.code === "SERVER_ERROR" || error?.code === "NETWORK_ERROR") {
+  if (
+    error?.code === "SERVER_ERROR" ||
+    error?.code === "NETWORK_ERROR" ||
+    error?.code === "OFFLINE"
+  ) {
     return (
       <ApiErrorDisplay
         icon={<AlertTriangle className="h-10 w-10 text-danger" />}

@@ -53,23 +53,10 @@ export const QUERY_KEYS = {
   CAMERA: {
     STATUS: ["camera", "status"] as const,
   },
-  DASHBOARD: {
-    METRICS: ["dashboard", "metrics"] as const,
-    ANALYTICS: ["dashboard", "analytics"] as const,
-    SUMMARY: ["dashboard", "summary"] as const,
-    EVENTS: ["dashboard", "events"] as const,
-  },
   SYSTEM: {
     HEALTH: ["system", "health"] as const,
     MODELS: ["system", "models"] as const,
-    DATABASE: ["system", "database"] as const,
-    STORAGE: ["system", "storage"] as const,
-    STORAGE_INFO: ["system", "storage-info"] as const,
-    PERFORMANCE: ["system", "performance"] as const,
-    CONFIGURATION: ["system", "configuration"] as const,
     VERSION: ["system", "version"] as const,
-    LOG_STATISTICS: ["system", "log-statistics"] as const,
-    BACKUPS: ["system", "backups"] as const,
   },
   GATE: {
     STATISTICS: ["gate", "statistics"] as const,
@@ -80,6 +67,10 @@ export const QUERY_KEYS = {
     STATUS: ["pipeline", "status"] as const,
     METRICS: ["pipeline", "metrics"] as const,
   },
+  FACE: {
+    MODEL_INFO: ["face", "model-info"] as const,
+    HISTORY: ["face", "history"] as const,
+  },
   DECISION: {
     STATISTICS: ["decision", "statistics"] as const,
     HISTORY: (page?: number) => ["decision", "history", page] as const,
@@ -88,9 +79,6 @@ export const QUERY_KEYS = {
     ALL: (params?: string) => ["reports", params] as const,
     ANALYTICS: ["reports", "analytics"] as const,
     MANUAL_REVIEWS: ["reports", "manual-reviews"] as const,
-    EVENTS: ["reports", "events"] as const,
-    DECISION_HISTORY: (page?: number) => ["decision", "history", page] as const,
-    EXPORT: ["reports", "export"] as const,
   },
   ADMIN: {
     DASHBOARD: ["admin", "dashboard"] as const,

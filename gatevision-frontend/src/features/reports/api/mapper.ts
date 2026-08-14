@@ -1,10 +1,7 @@
-import type { ApiDecisionHistoryItem } from "@/features/dashboard/types/api";
+import { formatHour } from "../utils";
 import type {
-  ApiReportRecord, ApiAnalyticsSummary, ApiHourlyTraffic, ApiDailyTrendData,
-  ApiDecisionBreakdownData, ApiProcessingMetrics, ApiDenialTrend,
-  ApiRecognitionStatistics, ApiPeakHourData, ApiGateComparison,
-  ApiVehicleDistribution, ApiManualReviewTrend, ApiSearchResult,
-  ApiManualReviewSummary, ApiEventSummary,
+  ApiReportRecord, ApiAnalyticsSummary,
+  ApiManualReviewSummary,
 } from "./types";
 
 export function mapReportRecord(r: ApiReportRecord) {
@@ -33,88 +30,78 @@ export function mapReportRecord(r: ApiReportRecord) {
 }
 
 export function mapAnalyticsSummary(a: ApiAnalyticsSummary) {
+  const hourlyTraffic = (a.hourly_traffic ?? []).map((h) => ({
+    hour: formatHour(h.hour),
+    entries: h.count,
+    exits: 0,
+  }));
+
+  const breakdown = a.decision_breakdown;
+  const decisionBreakdown: {
+    type: "granted" | "denied" | "manual_review";
+    count: number;
+    percentage: number;
+  }[] = [];
+  if (breakdown) {
+    decisionBreakdown.push({
+      type: "granted",
+      count: breakdown.grants,
+      percentage: Math.round((breakdown.grant_rate ?? 0) * 100),
+    });
+    decisionBreakdown.push({
+      type: "denied",
+      count: breakdown.denials,
+      percentage: Math.round((breakdown.denial_rate ?? 0) * 100),
+    });
+    decisionBreakdown.push({
+      type: "manual_review",
+      count: breakdown.manual_reviews,
+      percentage: Math.round((breakdown.review_rate ?? 0) * 100),
+    });
+  }
+
+  const processing = a.processing_times;
+
+  const gateComparison: {
+    gateId: string;
+    gateName: string;
+    entries: number;
+    exits: number;
+    avgWaitSec: number;
+    utilizationPct: number;
+  }[] = [];
+  const vehicleDistribution: { type: string; count: number }[] = [];
+  const manualReviewTrend: { date: string; count: number; resolved: number; pending: number }[] = [];
+
   return {
-    hourlyTraffic: (a.hourly_traffic ?? []).map(mapHourlyTraffic),
-    dailyTrends: (a.daily_trends ?? []).map(mapDailyTrend),
-    decisionBreakdown: (a.decision_breakdown ?? []).map(mapDecisionBreakdown),
-    processingMetrics: mapProcessingMetrics(a.processing_metrics),
-    denialTrends: (a.denial_trends ?? []).map(mapDenialTrend),
-    recognitionStats: mapRecognitionStats(a.recognition_statistics),
-    peakHours: (a.peak_hours ?? []).map(mapPeakHour),
-    gateComparison: (a.gate_comparison ?? []).map(mapGateComparison),
-    vehicleDistribution: (a.vehicle_distribution ?? []).map(mapVehicleDistribution),
-    manualReviewTrend: (a.manual_review_trend ?? []).map(mapManualReviewTrend),
-  };
-}
-
-function mapHourlyTraffic(h: ApiHourlyTraffic) {
-  return { hour: h.hour, entries: h.entries, exits: h.exits };
-}
-
-function mapDailyTrend(d: ApiDailyTrendData) {
-  return { date: d.date, entries: d.entries, exits: d.exits, total: d.total };
-}
-
-function mapDecisionBreakdown(d: ApiDecisionBreakdownData) {
-  return { type: d.type as "granted" | "denied" | "manual_review" | "emergency" | "unknown", count: d.count, percentage: d.percentage };
-}
-
-function mapProcessingMetrics(p: ApiProcessingMetrics) {
-  return {
-    avgProcessingTimeMs: p.avg_processing_time_ms,
-    p50Ms: p.p50_ms,
-    p95Ms: p.p95_ms,
-    p99Ms: p.p99_ms,
-    throughputPerSecond: p.throughput_per_second,
-  };
-}
-
-function mapDenialTrend(d: ApiDenialTrend) {
-  return { date: d.date, count: d.count, reason: d.reason };
-}
-
-function mapRecognitionStats(r: ApiRecognitionStatistics) {
-  return {
-    plateAccuracy: r.plate_accuracy,
-    ocrAccuracy: r.ocr_accuracy,
-    faceAccuracy: r.face_accuracy,
-    vehicleAccuracy: r.vehicle_accuracy,
-    totalProcessed: r.total_processed,
-    avgConfidence: r.avg_confidence,
-  };
-}
-
-function mapPeakHour(p: ApiPeakHourData) {
-  return { hour: p.hour, entries: p.entries, exits: p.exits };
-}
-
-function mapGateComparison(g: ApiGateComparison) {
-  return {
-    gateId: g.gate_id,
-    gateName: g.gate_name,
-    entries: g.entries,
-    exits: g.exits,
-    avgWaitSec: g.avg_wait_sec,
-    utilizationPct: g.utilization_pct,
-  };
-}
-
-function mapVehicleDistribution(v: ApiVehicleDistribution) {
-  return { type: v.type, count: v.count };
-}
-
-function mapManualReviewTrend(m: ApiManualReviewTrend) {
-  return { date: m.date, count: m.count, resolved: m.resolved, pending: m.pending };
-}
-
-export function mapSearchResult(s: ApiSearchResult) {
-  return {
-    id: s.id,
-    type: s.type,
-    label: s.label,
-    description: s.description,
-    score: s.score,
-    metadata: s.metadata,
+    hourlyTraffic,
+    dailyTrends: (a.daily_trend ?? []).map((d) => ({
+      date: d._id,
+      entries: d.entries,
+      exits: d.exits,
+      total: d.count,
+    })),
+    decisionBreakdown,
+    processingMetrics: {
+      avgProcessingTimeMs: processing?.avg_processing_time_ms ?? 0,
+      p50Ms: 0,
+      p95Ms: 0,
+      p99Ms: 0,
+      throughputPerSecond: 0,
+    },
+    denialTrends: [],
+    recognitionStats: {
+      plateAccuracy: 0,
+      ocrAccuracy: 0,
+      faceAccuracy: 0,
+      vehicleAccuracy: 0,
+      totalProcessed: 0,
+      avgConfidence: 0,
+    },
+    peakHours: hourlyTraffic,
+    gateComparison,
+    vehicleDistribution,
+    manualReviewTrend,
   };
 }
 
@@ -130,38 +117,5 @@ export function mapManualReviewSummary(m: ApiManualReviewSummary) {
     createdAt: m.created_at,
     resolvedAt: m.resolved_at,
     resolvedBy: m.resolved_by,
-  };
-}
-
-export function mapEventSummary(e: ApiEventSummary) {
-  return {
-    id: e.id,
-    type: e.type,
-    message: e.message,
-    severity: e.severity,
-    timestamp: e.timestamp,
-    source: e.source,
-    metadata: e.metadata,
-  };
-}
-
-export function mapDecisionHistoryItem(d: ApiDecisionHistoryItem) {
-  return {
-    id: d.id,
-    plate: d.plate,
-    driver: d.driver,
-    vehicle: d.vehicle,
-    decision: d.decision,
-    confidence: d.confidence,
-    timestamp: d.timestamp,
-    processingMs: d.processing_ms,
-    stages: (d.stages ?? []).map((s) => ({
-      stage: s.stage,
-      status: s.status,
-      label: s.label,
-      detail: s.detail,
-      confidence: s.confidence,
-      timestamp: s.timestamp,
-    })),
   };
 }

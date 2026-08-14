@@ -1,9 +1,6 @@
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { PipelineNode } from "./pipeline-node";
 import type { StageState } from "../types";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface PipelineProps {
   stages: StageState[];
@@ -12,28 +9,20 @@ interface PipelineProps {
 }
 
 function Pipeline({ stages, activeStageIndex = -1, title = "AI Processing Pipeline" }: PipelineProps) {
-  const prefersReduced = useReducedMotion();
-
   return (
     <Card className="p-4">
       <h3 className="mb-3 text-sm font-medium">{title}</h3>
-      <div className="space-y-0">
+      <div className="grid grid-cols-2 gap-2">
         {stages.map((stage, i) => (
-          <motion.div
+          <div
             key={stage.stage}
-            initial={prefersReduced ? undefined : { opacity: 0, y: 8 }}
-            animate={{
-              opacity: activeStageIndex >= 0 && i > activeStageIndex ? 0.4 : 1,
-              y: 0,
+            style={{
+              opacity: activeStageIndex >= 0 && i > activeStageIndex ? 0.45 : 1,
+              transition: "opacity 0.2s",
             }}
-            transition={{ duration: 0.2 }}
           >
-            <PipelineNode
-              stage={stage}
-              index={i}
-              isLast={i === stages.length - 1}
-            />
-          </motion.div>
+            <PipelineNode stage={stage} index={i} />
+          </div>
         ))}
       </div>
     </Card>

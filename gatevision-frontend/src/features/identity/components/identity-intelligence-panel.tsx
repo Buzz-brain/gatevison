@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   BrainCircuit, ShieldCheck, AlertTriangle, Users, Car, Activity,
@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useIdentityStats, useIdentityActivity } from "../hooks/use-identity-api";
+import type { IdentityStats, ActivityItem } from "../types";
 
 interface IntelMetric {
   label: string;
@@ -34,6 +36,25 @@ interface IdentityCluster {
   active: boolean;
 }
 
+const EMPTY_STATS: IdentityStats = {
+  totalDrivers: 0,
+  totalVehicles: 0,
+  totalPolicies: 0,
+  enrollmentRate: 0,
+  verificationSuccess: 0,
+  recognitionQuality: 0,
+  driversByStatus: {} as IdentityStats["driversByStatus"],
+};
+
+const CLUSTER_DEFS: { id: keyof IdentityStats["driversByStatus"]; label: string; color: string }[] = [
+  { id: "verified", label: "Verified", color: "bg-success" },
+  { id: "vip", label: "VIP", color: "bg-primary" },
+  { id: "pending", label: "Pending", color: "bg-warning" },
+  { id: "visitor", label: "Visitor", color: "bg-info" },
+  { id: "suspended", label: "Suspended", color: "bg-danger" },
+  { id: "expired", label: "Expired", color: "bg-muted-foreground" },
+];
+
 function useLiveTick(intervalMs = 3000) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -43,31 +64,34 @@ function useLiveTick(intervalMs = 3000) {
   return tick;
 }
 
-const METRICS: IntelMetric[] = [
-  { label: "Verification Rate", value: "98.4%", trend: "up", pct: 98.4, icon: ShieldCheck },
-  { label: "Avg Confidence", value: "96.2%", trend: "up", pct: 96.2, icon: Eye },
-  { label: "Active Sessions", value: "1,847", trend: "up", pct: 78, icon: Activity },
-  { label: "Threat Detections", value: "12", trend: "down", pct: 12, icon: AlertTriangle },
-  { label: "Enrollment Rate", value: "94.2%", trend: "stable", pct: 94.2, icon: Users },
-  { label: "Recognition QOS", value: "97.1%", trend: "up", pct: 97.1, icon: Target },
-];
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(diff) || diff < 0) return "just now";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
 
-const THREAT_SIGNALS: ThreatSignal[] = [
-  { id: "ts-1", type: "anomaly", severity: "high", title: "Unusual Access Pattern", description: "Driver Alex Drake accessed North Gate 12x in 2 hours (baseline: 5x/day)", timestamp: "2m ago" },
-  { id: "ts-2", type: "spoof_detected", severity: "critical", title: "Spoof Attempt Blocked", description: "Facial recognition liveness check failed at Gate B for unknown subject", timestamp: "15m ago" },
-  { id: "ts-3", type: "policy_violation", severity: "medium", title: "After-Hours Access", description: "Vehicle veh-007 attempted entry at Service Gate outside permitted schedule", timestamp: "1h ago" },
-  { id: "ts-4", type: "breach_attempt", severity: "high", title: "Repeated Auth Failure", description: "3 consecutive verification failures for employee ID EMP-7781 at Main Gate", timestamp: "2h ago" },
-  { id: "ts-5", type: "anomaly", severity: "low", title: "New Device Fingerprint", description: "Vehicle fingerprint mismatch for veh-003 - possible repaint detected", timestamp: "4h ago" },
-];
+function activityThreatType(type: ActivityItem["type"]): ThreatSignal["type"] {
+  switch (type) {
+    case "policy_changed": return "policy_violation";
+    case "identity_verified": return "anomaly";
+    case "vehicle_registered": return "anomaly";
+    case "link": return "anomaly";
+    default: return "anomaly";
+  }
+}
 
-const CLUSTERS: IdentityCluster[] = [
-  { id: "c1", label: "Verified", count: 1247, color: "bg-success", active: true },
-  { id: "c2", label: "VIP", count: 89, color: "bg-primary", active: true },
-  { id: "c3", label: "Contractor", count: 234, color: "bg-warning", active: true },
-  { id: "c4", label: "Visitor", count: 156, color: "bg-info", active: true },
-  { id: "c5", label: "Suspended", count: 12, color: "bg-danger", active: true },
-  { id: "c6", label: "Pending", count: 28, color: "bg-muted-foreground", active: true },
-];
+function activitySeverity(type: ActivityItem["type"]): ThreatSignal["severity"] {
+  switch (type) {
+    case "policy_changed": return "medium";
+    case "identity_verified": return "low";
+    default: return "low";
+  }
+}
 
 function severityColor(s: string): string {
   switch (s) {
@@ -95,6 +119,59 @@ function IdentityIntelligencePanel() {
   const [scanActive, setScanActive] = useState(true);
 
   const radarRef = useRef<HTMLDivElement>(null);
+
+  const { data: statsData } = useIdentityStats();
+  const { data: activity } = useIdentityActivity();
+
+  const stats = useMemo(() => statsData ?? EMPTY_STATS, [statsData]);
+
+  const METRICS = useMemo<IntelMetric[]>(() => {
+    const totalProfiles = stats.totalDrivers + stats.totalVehicles;
+    return [
+      { label: "Verification Rate", value: `${stats.verificationSuccess.toFixed(1)}%`, trend: "up", pct: stats.verificationSuccess, icon: ShieldCheck },
+      { label: "Recognition QOS", value: `${stats.recognitionQuality.toFixed(1)}%`, trend: "up", pct: stats.recognitionQuality, icon: Target },
+      { label: "Active Profiles", value: totalProfiles.toLocaleString(), trend: "up", pct: 75, icon: Users },
+      { label: "Access Policies", value: String(stats.totalPolicies), trend: "stable", pct: 50, icon: Fingerprint },
+      { label: "Enrollment Rate", value: `${stats.enrollmentRate.toFixed(1)}%`, trend: "stable", pct: stats.enrollmentRate, icon: Activity },
+      { label: "Total Drivers", value: String(stats.totalDrivers), trend: "stable", pct: 60, icon: Car },
+    ];
+  }, [stats]);
+
+  const THREAT_SIGNALS = useMemo<ThreatSignal[]>(() => {
+    if (!activity || activity.length === 0) return [];
+    return activity.slice(0, 6).map((a, i) => ({
+      id: `ts-${a.id ?? i}`,
+      type: activityThreatType(a.type),
+      severity: activitySeverity(a.type),
+      title: a.title,
+      description: a.description,
+      timestamp: relativeTime(a.timestamp),
+    }));
+  }, [activity]);
+
+  const CLUSTERS = useMemo<IdentityCluster[]>(() => {
+    return CLUSTER_DEFS.map((d) => ({
+      id: d.id,
+      label: d.label,
+      color: d.color,
+      count: stats.driversByStatus[d.id] ?? 0,
+      active: true,
+    }));
+  }, [stats]);
+
+  const BIOMETRIC_HEALTH = useMemo(() => {
+    return [
+      { label: "Face Enrollment", value: stats.enrollmentRate, color: "bg-success" },
+      { label: "Verification Success", value: stats.verificationSuccess, color: "bg-primary" },
+      { label: "Recognition Quality", value: stats.recognitionQuality, color: "bg-success" },
+      { label: "Match Accuracy", value: +(stats.verificationSuccess * 0.95).toFixed(1), color: "bg-primary" },
+    ];
+  }, [stats]);
+
+  const confidenceScore = useMemo(() => {
+    const sum = stats.verificationSuccess + stats.recognitionQuality + stats.enrollmentRate;
+    return Math.round(sum / 3);
+  }, [stats]);
 
   const animatedMetrics = METRICS.map((m, i) => ({
     ...m,
@@ -157,33 +234,40 @@ function IdentityIntelligencePanel() {
             <Badge variant="danger" className="ml-auto text-[10px]">{THREAT_SIGNALS.length} Active</Badge>
           </div>
           <div className="space-y-2">
-            {THREAT_SIGNALS.map((ts, i) => {
-              const Icon = threatIcon(ts.type);
-              return (
-                <motion.div
-                  key={ts.id}
-                  initial={prefersReduced ? {} : { opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <Card className={cn("flex items-start gap-3 border-l-2 p-3", severityColor(ts.severity).split(" ")[0] || "border-border")}>
-                    <div className={cn("flex h-7 w-7 items-center justify-center rounded-full", severityColor(ts.severity).split(" ")[1] || "bg-surface")}>
-                      <Icon className={cn("h-3.5 w-3.5", severityColor(ts.severity).split(" ")[2] || "text-muted-foreground")} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium">{ts.title}</span>
-                        <Badge variant={ts.severity === "critical" ? "danger" : ts.severity === "high" ? "warning" : ts.severity === "medium" ? "info" : "neutral"} className="text-[9px]">
-                          {ts.severity}
-                        </Badge>
+            {THREAT_SIGNALS.length === 0 ? (
+              <Card className="flex items-center justify-center gap-2 border-dashed p-6 text-muted-foreground/60">
+                <ScanLine className="h-4 w-4" />
+                <span className="text-xs">No threat signals in recent identity activity</span>
+              </Card>
+            ) : (
+              THREAT_SIGNALS.map((ts, i) => {
+                const Icon = threatIcon(ts.type);
+                return (
+                  <motion.div
+                    key={ts.id}
+                    initial={prefersReduced ? {} : { opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    <Card className={cn("flex items-start gap-3 border-l-2 p-3", severityColor(ts.severity).split(" ")[0] || "border-border")}>
+                      <div className={cn("flex h-7 w-7 items-center justify-center rounded-full", severityColor(ts.severity).split(" ")[1] || "bg-surface")}>
+                        <Icon className={cn("h-3.5 w-3.5", severityColor(ts.severity).split(" ")[2] || "text-muted-foreground")} />
                       </div>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground/70">{ts.description}</p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground/50">{ts.timestamp}</p>
-                    </div>
-                  </Card>
-                </motion.div>
-              );
-            })}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium">{ts.title}</span>
+                          <Badge variant={ts.severity === "critical" ? "danger" : ts.severity === "high" ? "warning" : ts.severity === "medium" ? "info" : "neutral"} className="text-[9px]">
+                            {ts.severity}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground/70">{ts.description}</p>
+                        <p className="mt-0.5 text-[10px] text-muted-foreground/50">{ts.timestamp}</p>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })
+            )}
           </div>
 
           <Card className="p-4">
@@ -246,7 +330,7 @@ function IdentityIntelligencePanel() {
             <div className="space-y-2">
               {CLUSTERS.map((c) => {
                 const total = CLUSTERS.reduce((s, x) => s + x.count, 0);
-                const pct = ((c.count / total) * 100).toFixed(1);
+                const pct = total > 0 ? ((c.count / total) * 100).toFixed(1) : "0.0";
                 return (
                   <div key={c.id} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -274,16 +358,11 @@ function IdentityIntelligencePanel() {
               <span className="text-xs font-medium">Biometric Health</span>
             </div>
             <div className="space-y-3">
-              {[
-                { label: "Face Enrollment", value: 96.8, color: "bg-success" },
-                { label: "Vehicle FP", value: 94.2, color: "bg-primary" },
-                { label: "Liveness Detection", value: 99.1, color: "bg-success" },
-                { label: "Match Accuracy", value: 97.5, color: "bg-primary" },
-              ].map((item) => (
+              {BIOMETRIC_HEALTH.map((item) => (
                 <div key={item.label}>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground/70">{item.label}</span>
-                    <span className="font-medium tabular-nums">{item.value}%</span>
+                    <span className="font-medium tabular-nums">{item.value.toFixed(1)}%</span>
                   </div>
                   <div className="mt-0.5 h-1.5 rounded-full bg-border">
                     <motion.div
@@ -303,8 +382,8 @@ function IdentityIntelligencePanel() {
               <BrainCircuit className="h-4 w-4 text-primary" />
               <span className="text-[11px] text-muted-foreground/70">AI Confidence Score</span>
             </div>
-            <p className="mt-1 text-2xl font-bold text-primary tabular-nums">96.8%</p>
-            <p className="text-[10px] text-muted-foreground/50">+2.1% from last week</p>
+            <p className="mt-1 text-2xl font-bold text-primary tabular-nums">{confidenceScore}%</p>
+            <p className="text-[10px] text-muted-foreground/50">aggregate of verification, recognition & enrollment</p>
           </Card>
         </div>
       </div>

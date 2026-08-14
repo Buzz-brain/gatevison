@@ -1,17 +1,28 @@
 # GateVision - AI Vehicle Access Control System
 
-An intelligent vehicle access control system that combines license plate recognition, facial recognition, vehicle fingerprinting, and AI-powered decision engine for automated security gate management.
+An intelligent vehicle access control system that combines license plate recognition, facial recognition, vehicle fingerprinting, and an AI-powered decision engine for automated security gate management. Gate decisions are **session-based by default** (Mode A): every vehicle is tracked through an explicit entry -> inside -> exit session lifecycle keyed on the observed license plate.
 
 ## Features
 
 - **Dashboard**: Real-time operations center with live metrics, camera feeds, and system health monitoring
 - **Recognition Center**: Multi-stage AI pipeline for license plate detection, OCR, facial recognition, and vehicle fingerprinting
 - **Identity Management**: Comprehensive driver and vehicle profiles, enrollment, access policies, and verification
-- **Gate Operations**: Live session monitoring, entry/exit control, traffic analytics, and mission replay
+- **Gate Operations**: Session lifecycle monitoring (entry session -> inside -> exit session), active session matching, entry/exit control, traffic analytics, and mission replay
 - **Reports & Analytics**: Advanced analytics with traffic patterns, decision breakdowns, security insights, and export
 - **Administration**: Security command center, manual review queue, event monitoring, and system management
 - **System Monitoring**: Real-time health dashboards, AI model status, performance metrics, Digital Twin visualization
 - **Settings & Configuration**: Comprehensive configuration for every subsystem
+
+### Verification Modes
+
+Gate decisions support two backend modes. **Mode A (Session Verification) is the default** and is wired through the frontend; Mode B targets future enterprise deployments.
+
+| Mode | Backend flag | Keyed by | Decision basis | Status |
+|------|-------------|----------|----------------|--------|
+| **A - Session Verification** | `DECISION_MODE="session"` | License plate | Captured signal quality (plate OCR + face embedding + vehicle embedding) | **Active** (frontend + backend) |
+| **B - Identity Verification** | `DECISION_MODE="identity"` | Registered `vehicle_id` | Resolution against registered driver/vehicle profiles | Future enterprise deployment (backend routes exist) |
+
+**Session lifecycle (Mode A):** entry opens a `GateSession` storing the face/vehicle embeddings and records an ENTRY transaction; exit is validated by `ActiveSessionMatcher` (plate 0.50 + vehicle 0.30 + face 0.20, threshold >= 0.55) against active sessions before the session closes and an EXIT transaction is recorded. A vehicle cannot exit without an entry session.
 
 ### Hackathon Features
 
@@ -75,7 +86,8 @@ pip install -r requirements.txt
 # Environment
 cp .env.example .env
 
-# Run
+# Run (default DECISION_MODE="session" -> Mode A session-based gate decisions)
+# To use registered-profile verification instead, set DECISION_MODE=identity (Mode B)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -140,7 +152,7 @@ GateVision communicates with a FastAPI backend. Key endpoints:
 | Auth | `/auth/login`, `/auth/refresh`, `/auth/me` |
 | Recognition | `/camera/*`, `/plate-detection/*`, `/ocr/*`, `/face/*`, `/vehicle/*`, `/pipeline/*`, `/decision/*` |
 | Identity | `/identity/drivers/*`, `/identity/vehicles/*`, `/identity/policies/*`, `/identity/enroll/*` |
-| Gate | `/gate/entry`, `/gate/exit`, `/gate/active`, `/gate/transactions` |
+| Gate | `/gate/entry`, `/gate/exit`, `/gate/active`, `/gate/transactions`, `/gate/session/{vehicle_id}`, `/gate/history/{vehicle_id}`, `/gate/statistics` |
 | Dashboard | `/admin/dashboard`, `/admin/analytics`, `/admin/events` |
 | Reports | `/admin/reports`, `/admin/search`, `/admin/export` |
 | System | `/system/health`, `/system/models`, `/system/performance`, `/system/backup/*` |

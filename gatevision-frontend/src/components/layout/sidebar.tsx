@@ -1,8 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
-  Monitor,
   ShieldCheck,
   Users,
   DoorOpen,
@@ -11,7 +9,7 @@ import {
   Wrench,
   ChevronLeft,
   ChevronRight,
-  Presentation,
+  ScanFace,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,22 +23,40 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   href: string;
-  badge?: number;
+  badge?: number | string;
 }
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { label: "Live Monitoring", icon: Monitor, href: "/live-monitoring" },
-  { label: "Access Control", icon: ShieldCheck, href: "/access-control" },
-  { label: "Identity", icon: Users, href: "/identity" },
-  { label: "Gate Operations", icon: DoorOpen, href: "/gate-operations" },
-  { label: "Reports", icon: BarChart3, href: "/reports" },
-  { label: "System", icon: Wrench, href: "/system" },
-  { label: "Demo Center", icon: Presentation, href: "/demo" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    label: "Operations",
+    items: [
+      { label: "Recognition Center", icon: ScanFace, href: "/recognition" },
+      { label: "Gate Operations", icon: DoorOpen, href: "/gate-operations" },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      { label: "Reports", icon: BarChart3, href: "/reports" },
+      { label: "System", icon: Wrench, href: "/system" },
+    ],
+  },
+  {
+    label: "Enterprise",
+    items: [
+      { label: "Enterprise Identity", icon: Users, href: "/identity", badge: "Future" },
+    ],
+  },
 ];
 
-const bottomItems: NavItem[] = [];
+const bottomItems: NavItem[] = [
+  { label: "Settings", icon: Settings, href: "/settings" },
+];
 
 function Sidebar() {
   const { isCollapsed, toggleCollapsed, isMobileOpen, setMobileOpen } = useSidebarStore();
@@ -78,43 +94,77 @@ function Sidebar() {
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-2 py-3">
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                  isCollapsed && "justify-center px-2",
-                  active
-                    ? "bg-primary/10 text-primary font-medium border border-primary/10"
-                    : "text-muted-foreground hover:bg-elevated hover:text-foreground",
-                )}
-                onClick={() => isMobile && setMobileOpen(false)}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-medium text-primary">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="space-y-4">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              {!isCollapsed && (
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        isCollapsed && "justify-center px-2",
+                        active
+                          ? "bg-primary/10 text-primary font-medium border border-primary/10"
+                          : "text-muted-foreground hover:bg-elevated hover:text-foreground",
+                      )}
+                      onClick={() => isMobile && setMobileOpen(false)}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {!isCollapsed && (
+                        <>
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-medium text-primary">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </ScrollArea>
 
-      {/* Collapse toggle */}
+      {/* Collapse toggle + bottom items */}
       {!isMobile && (
         <div className="border-t border-border p-2">
+          <nav className="mb-2 space-y-1">
+            {bottomItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                    isCollapsed && "justify-center px-2",
+                    active
+                      ? "bg-primary/10 text-primary font-medium border border-primary/10"
+                      : "text-muted-foreground hover:bg-elevated hover:text-foreground",
+                  )}
+                  onClick={() => isMobile && setMobileOpen(false)}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!isCollapsed && <span className="flex-1">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
           <button
             onClick={toggleCollapsed}
             className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-muted-foreground hover:bg-elevated hover:text-foreground transition-colors"

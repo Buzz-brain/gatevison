@@ -82,14 +82,6 @@ function OCRPanel({ ocr, animateChars = false }: OCRPanelProps) {
           <span className="text-[10px] text-muted-foreground/60">{ocr.format}</span>
           <span className="ml-auto text-xs font-mono text-primary">{ocr.confidence.toFixed(1)}%</span>
         </div>
-
-        {/* Regex match */}
-        <div className="rounded bg-elevated p-2">
-          <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50 mb-1">Regex Match</p>
-          <code className="text-[10px] font-mono text-foreground/80">
-            {"^[A-Z]{3}-\\d{3}[A-Z]{2}$"}
-          </code>
-        </div>
       </div>
     </Card>
   );

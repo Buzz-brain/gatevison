@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
-  Users, Car, UserPlus, Car as CarIcon, Upload, Search, ShieldCheck, Network, Plus, BrainCircuit,
+  Users, Car, UserPlus, Car as CarIcon, Upload, Search, ShieldCheck, Network, Plus, BrainCircuit, Sparkles, Fingerprint,
 } from "lucide-react";
-import { SectionHeader } from "@/components/layout/page-container";
+import { PageContainer, SectionHeader } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useIdentity } from "./hooks/use-identity";
 import { useIdentityRelationships } from "./hooks/use-identity-api";
@@ -25,6 +26,7 @@ import { Statistics } from "./components/statistics";
 import { BulkImport } from "./components/bulk-import";
 import { DigitalIdentityPassport } from "./components/digital-identity-passport";
 import { IdentityIntelligencePanel } from "./components/identity-intelligence-panel";
+import { FaceEnrollDialog } from "./components/face-enroll-dialog";
 import type { DriverProfile as Driver, VehicleProfile as Vehicle, AccessPolicy } from "./types";
 
 type Workspace = "drivers" | "vehicles" | "enrollment" | "policies" | "explorer" | "intelligence";
@@ -38,6 +40,7 @@ function IdentityPage() {
   const [vehicleWizard, setVehicleWizard] = useState(false);
   const [policyEditor, setPolicyEditor] = useState<AccessPolicy | null>(null);
   const [bulkImport, setBulkImport] = useState(false);
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false);
 
   const {
     drivers, vehicles, policies, activity, stats,
@@ -68,22 +71,42 @@ function IdentityPage() {
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <PageContainer className="space-y-6 pb-10">
       <SectionHeader
-        title="Identity Management"
-        description="Security Enrollment Center - manage drivers, vehicles, access policies and their relationships"
+        title="Enterprise Identity Management"
+        description="Future enhancement - active gate verification runs session-based Mode A. Enroll drivers, vehicles and policies to prepare for identity-based Mode B."
         action={
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search identities..."
-              className="w-56 pl-8"
-            />
+          <div className="flex items-center gap-3">
+            <Badge variant="neutral" className="gap-1.5">
+              <Sparkles className="h-3 w-3" />
+              Future Enhancement
+            </Badge>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search identities..."
+                className="w-56 pl-8"
+              />
+            </div>
           </div>
         }
       />
+
+      <Card className="flex items-start gap-3 border-info/20 bg-info/5 p-4">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">Future Enterprise Feature</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            This Identity Center is the next generation and is currently hidden from the live user
+            experience. Live gate verification runs session-based Mode A. Enroll drivers, vehicles,
+            and policies here to prepare for identity-based Mode B.
+          </p>
+        </div>
+      </Card>
 
       <Statistics stats={stats} />
 
@@ -113,6 +136,9 @@ function IdentityPage() {
           <div className="mb-3 flex items-center gap-2">
             <Button size="sm" className="gap-1.5" onClick={() => setDriverWizard(true)}>
               <Plus className="h-3.5 w-3.5" /> Enroll Driver
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setFaceEnrollOpen(true)}>
+              <Fingerprint className="h-3.5 w-3.5" /> Enroll Face
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBulkImport(true)}>
               <Upload className="h-3.5 w-3.5" /> Bulk Import
@@ -246,6 +272,12 @@ function IdentityPage() {
         <BulkImport onClose={() => setBulkImport(false)} onImported={() => {}} />
       )}
 
+      <FaceEnrollDialog
+        open={faceEnrollOpen}
+        onClose={() => setFaceEnrollOpen(false)}
+        drivers={drivers}
+      />
+
       {passportDriver && (
         <DigitalIdentityPassport
           driver={passportDriver}
@@ -254,7 +286,7 @@ function IdentityPage() {
           onClose={() => setPassportDriver(null)}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

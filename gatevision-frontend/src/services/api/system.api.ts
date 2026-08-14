@@ -1,9 +1,9 @@
-import { get, post } from "@/lib/api/api-client";
+import { get } from "@/lib/api/api-client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { normalizeError } from "@/lib/api/errors";
-import type { ApiSystemHealth, ApiModelHealth, ApiDatabaseHealth, ApiPerformanceMetrics, ApiStorageInfo, ApiConfigurationItem, ApiVersionInformation, ApiLogStatistics, ApiCleanupResult } from "@/features/system/api/types";
+import type { ApiSystemHealth, ApiModelHealth, ApiPerformanceMetrics, ApiVersionInformation } from "@/features/system/api/types";
 import type { NormalizedError } from "@/types/api";
-import type { ApiPipelineStatus, ApiPipelineMetrics, ApiCameraStatus } from "@/features/dashboard/types/api";
+import type { ApiPipelineStatus, ApiPipelineMetrics, ApiCameraStatus } from "@/services/api/types";
 
 export async function getSystemHealthApi(): Promise<ApiSystemHealth> {
   try {
@@ -12,7 +12,7 @@ export async function getSystemHealthApi(): Promise<ApiSystemHealth> {
       const raw = response.data as Record<string, unknown>;
       const components = raw.components as Record<string, { status?: string; healthy?: boolean }> | undefined;
       return {
-        status: (raw.overall_status as string) || "unknown",
+        status: (raw.overall_status as ApiSystemHealth["status"]) || "unknown",
         version: raw.application as string || "",
         database: components?.mongodb?.status ?? "unknown",
         cameras: components?.camera?.status ?? "unknown",
@@ -39,30 +39,6 @@ export async function getSystemModelsApi(): Promise<ApiModelHealth[]> {
   }
 }
 
-export async function getSystemDatabaseApi(): Promise<ApiDatabaseHealth> {
-  try {
-    const response = await get<Record<string, unknown>>(ENDPOINTS.SYSTEM.DATABASE);
-    if (response.success && response.data) {
-      const raw = response.data as Record<string, unknown>;
-      const details = (raw.details as Record<string, unknown>) ?? {};
-      return {
-        status: raw.healthy ? "healthy" : "unhealthy",
-        connections_active: (details.active_clients as number) ?? 0,
-        connections_idle: 0,
-        queries_per_second: 0,
-        avg_query_time_ms: 0,
-        replication_lag_ms: 0,
-        size_mb: (details.database_size_mb as number) ?? 0,
-        error_count: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch database health" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
 export async function getSystemPerformanceApi(): Promise<ApiPerformanceMetrics> {
   try {
     const response = await get<Record<string, unknown>>(ENDPOINTS.SYSTEM.PERFORMANCE);
@@ -85,71 +61,12 @@ export async function getSystemPerformanceApi(): Promise<ApiPerformanceMetrics> 
         memory_usage: raw.memory_usage as number ?? 40,
         gpu_usage: raw.gpu_usage as number ?? 10,
         requests_per_second: raw.requests_per_second as number ?? 0,
-        avg_latency_ms: (raw.avg_pipeline_execution_time_ms as number) ?? 0,
         error_rate: raw.error_rate as number ?? 0,
       };
     }
     throw { code: "UNKNOWN", message: response.message || "Failed to fetch performance" } as NormalizedError;
   } catch (error) {
     throw normalizeError(error);
-  }
-}
-
-export async function getSystemStorageInfoApi(): Promise<ApiStorageInfo> {
-  try {
-    const response = await get<Record<string, unknown>>(ENDPOINTS.SYSTEM.STORAGE_INFO);
-    if (response.success && response.data) {
-      const raw = response.data as Record<string, unknown>;
-      const totalBytes = raw.upload_directory_size_bytes as number ?? 0;
-      const freeBytes = raw.available_disk_space_bytes as number ?? 0;
-      const totalGigabytes = Math.max(1, (totalBytes + freeBytes) / 1_073_741_824);
-      return {
-        total_gb: Math.round(totalGigabytes * 10) / 10,
-        used_gb: Math.round((totalBytes / 1_073_741_824) * 10) / 10,
-        free_gb: Math.round((freeBytes / 1_073_741_824) * 10) / 10,
-        usage_pct: totalGigabytes > 0 ? Math.round((totalBytes / (totalBytes + freeBytes)) * 1000) / 10 : 0,
-        upload_size_gb: Math.round((totalBytes / 1_073_741_824) * 10) / 10,
-        images_count: raw.total_images as number ?? 0,
-        face_crops_count: raw.total_cropped_faces as number ?? 0,
-        plate_crops_count: raw.total_cropped_plates as number ?? 0,
-        vehicle_images_count: raw.total_vehicle_images as number ?? 0,
-      };
-    }
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch storage info" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
-export async function getSystemConfigurationApi(): Promise<ApiConfigurationItem[]> {
-  try {
-    const response = await get<Record<string, unknown>>(ENDPOINTS.SYSTEM.CONFIGURATION);
-    if (response.success && response.data) {
-      const raw = response.data as Record<string, unknown>;
-      const settings = raw.settings as Record<string, unknown> ?? {};
-      const items: ApiConfigurationItem[] = [];
-      const flatten = (obj: Record<string, unknown>, prefix = "") => {
-        for (const [key, value] of Object.entries(obj)) {
-          const fullKey = prefix ? `${prefix}.${key}` : key;
-          if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-            flatten(value as Record<string, unknown>, fullKey);
-          } else {
-            items.push({
-              key: fullKey,
-              value: Array.isArray(value) ? value.join(", ") : String(value ?? ""),
-              description: "",
-              editable: true,
-              category: prefix || "General",
-            });
-          }
-        }
-      };
-      flatten(settings);
-      return items;
-    }
-    return [];
-  } catch {
-    return [];
   }
 }
 
@@ -168,6 +85,8 @@ export async function getSystemVersionApi(): Promise<ApiVersionInformation> {
         pytorch: libs.torch ?? "",
         yolo: libs.ultralytics ?? "",
         easyocr: libs.easyocr ?? "",
+        build: (raw.build as string) || "",
+        commit: (raw.commit as string) || "",
         built_at: (raw.build_timestamp as string) || "",
       };
     }
@@ -177,44 +96,7 @@ export async function getSystemVersionApi(): Promise<ApiVersionInformation> {
   }
 }
 
-export async function getSystemLogStatisticsApi(): Promise<ApiLogStatistics> {
-  try {
-    const response = await get<Record<string, unknown>>(ENDPOINTS.SYSTEM.LOG_STATISTICS);
-    if (response.success && response.data) {
-      const raw = response.data as Record<string, unknown>;
-      const severities = (raw.severity_counts as Record<string, number>) ?? {};
-      return {
-        errors: (severities.error ?? severities.errors ?? raw.errors_last_24h as number ?? 0),
-        warnings: (severities.warning ?? severities.warnings ?? 0),
-        critical: (severities.critical ?? severities.crit ?? 0),
-        info: (severities.info ?? 0),
-        startup: 0,
-        shutdown: 0,
-        model_loads: 0,
-        decision_overrides: 0,
-      };
-    }
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch log statistics" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
-export async function getSystemCleanupApi(): Promise<ApiCleanupResult> {
-  try {
-    const response = await post<ApiCleanupResult>(ENDPOINTS.SYSTEM.CLEANUP);
-    if (response.success && response.data) return response.data;
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch cleanup info" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
 /* Re-exported for dashboard and gate-operations compatibility */
-export async function getSystemStorageApi(): Promise<ApiStorageInfo> {
-  return getSystemStorageInfoApi();
-}
-
 export async function getPipelineStatusApi(): Promise<ApiPipelineStatus> {
   try {
     const response = await get<ApiPipelineStatus>(ENDPOINTS.PIPELINE.STATUS);

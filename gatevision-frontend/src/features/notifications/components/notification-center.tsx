@@ -56,6 +56,12 @@ function NotificationCenter() {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const handler = () => toggleOpen();
+    document.addEventListener("toggle-notifications", handler);
+    return () => document.removeEventListener("toggle-notifications", handler);
+  }, [toggleOpen]);
+
   return (
     <>
       {/* Bell trigger */}

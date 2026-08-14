@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import type { CommandGroup } from "@/types/commands";
 import {
-  LayoutDashboard,
-  Monitor,
   ShieldCheck,
   Users,
   DoorOpen,
@@ -53,9 +51,6 @@ function getCommandGroups(): CommandGroup[] {
       id: "navigation",
       label: "Navigation",
       items: [
-        { id: "nav-dash", label: "Dashboard", description: "System overview", icon: LayoutDashboard as LucideIcon, shortcut: ["G", "D"], keywords: ["home", "main"], onSelect: () => navigateFn("/") },
-        { id: "nav-live", label: "Live Monitoring", description: "Camera feeds", icon: Monitor as LucideIcon, shortcut: ["G", "L"], keywords: ["camera", "feed"], onSelect: () => navigateFn("/live-monitoring") },
-        { id: "nav-access", label: "Access Control", description: "Gate rules", icon: ShieldCheck as LucideIcon, shortcut: ["G", "A"], keywords: ["gate", "permission"], onSelect: () => navigateFn("/access-control") },
         { id: "nav-identity", label: "Identity", description: "Vehicles & drivers", icon: Users as LucideIcon, shortcut: ["G", "I"], keywords: ["driver", "vehicle", "person"], onSelect: () => navigateFn("/identity") },
         { id: "nav-gates", label: "Gate Operations", description: "Barrier control", icon: DoorOpen as LucideIcon, shortcut: ["G", "O"], keywords: ["barrier", "queue"], onSelect: () => navigateFn("/gate-operations") },
         { id: "nav-reports", label: "Reports", description: "Analytics", icon: BarChart3 as LucideIcon, shortcut: ["G", "R"], keywords: ["analytics", "audit"], onSelect: () => navigateFn("/reports") },

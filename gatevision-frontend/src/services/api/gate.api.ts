@@ -1,8 +1,8 @@
 import { get } from "@/lib/api/api-client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { normalizeError } from "@/lib/api/errors";
-import type { ApiGateStatistics, ApiGateActive, ApiGateTransaction } from "@/features/dashboard/types/api";
-import type { NormalizedError, PaginatedResponse } from "@/types/api";
+import type { ApiGateStatistics, ApiGateActive } from "@/services/api/types";
+import type { NormalizedError } from "@/types/api";
 
 export async function getGateStatisticsApi(): Promise<ApiGateStatistics> {
   try {
@@ -40,19 +40,6 @@ export async function getGateActiveApi(): Promise<ApiGateActive> {
       };
     }
     throw { code: "UNKNOWN", message: response.message || "Failed to fetch active gates" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
-export async function getGateTransactionsApi(page = 1, pageSize = 50): Promise<PaginatedResponse<ApiGateTransaction>> {
-  try {
-    const response = await get<PaginatedResponse<ApiGateTransaction>>(
-      ENDPOINTS.GATE.TRANSACTIONS,
-      { page, page_size: pageSize },
-    );
-    if (response.success && response.data) return response.data;
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch transactions" } as NormalizedError;
   } catch (error) {
     throw normalizeError(error);
   }

@@ -18,12 +18,12 @@ export async function getDriversApi(
     );
     if (response.success && response.data) {
       const raw = response.data;
-      if (Array.isArray(raw)) return { items: raw as ApiDriverProfile[], total: raw.length, page, page_size: pageSize, total_pages: 1 };
-      return raw as PaginatedResponse<ApiDriverProfile>;
+      if (Array.isArray(raw)) return { items: raw as ApiDriverProfile[], total: raw.length, page, pageSize, totalPages: 1 };
+      return raw as unknown as PaginatedResponse<ApiDriverProfile>;
     }
-    return { items: [], total: 0, page, page_size: pageSize, total_pages: 1 };
+    return { items: [], total: 0, page, pageSize, totalPages: 1 };
   } catch {
-    return { items: [], total: 0, page, page_size: pageSize, total_pages: 1 };
+    return { items: [], total: 0, page, pageSize, totalPages: 1 };
   }
 }
 

@@ -105,8 +105,14 @@ export interface ApiIdentityVerification {
 export interface ApiGateWorkflow {
   gate_action: "open" | "closed" | "pending" | "overridden";
   session_id?: string;
+  transaction_id?: string;
   timestamp: string;
   gate_id?: string;
+  success?: boolean;
+  action?: string;
+  vehicle_id?: string;
+  message?: string;
+  error?: string;
 }
 
 export interface ApiTimestamps {
@@ -186,6 +192,7 @@ export interface ApiRecognitionHistoryEntry {
   vehicle: string;
   decision: "granted" | "denied" | "manual_review";
   confidence: number;
+  direction: "entry" | "exit";
   timestamp: string;
   pipeline_id: string;
 }

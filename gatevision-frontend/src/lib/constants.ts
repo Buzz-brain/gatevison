@@ -3,8 +3,6 @@ export const APP_VERSION = "1.0.0";
 
 export const ROUTES = {
   DASHBOARD: "/",
-  LIVE_MONITORING: "/live-monitoring",
-  ACCESS_CONTROL: "/access-control",
   IDENTITY: "/identity",
   GATE_OPERATIONS: "/gate-operations",
   REPORTS: "/reports",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, ScanFace, IdCard, Car, BarChart3, ShieldCheck, Monitor, Settings,
@@ -32,13 +32,9 @@ function GuidedTour() {
   const [currentStep, setCurrentStep] = useState(0);
   const prefersReduced = useReducedMotion();
 
-  useEffect(() => {
-    const completed = localStorage.getItem("gatevision-tour-completed");
-    if (!completed) {
-      const timer = setTimeout(() => setIsOpen(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Auto-show intentionally disabled: the full-screen tour overlay (z-400)
+  // blocked all interaction with the app behind it, including the sidebar.
+  // The tour still works if opened explicitly (e.g. via settings).
 
   const handleComplete = () => {
     localStorage.setItem("gatevision-tour-completed", "true");

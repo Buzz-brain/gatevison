@@ -1,7 +1,7 @@
-import { get } from "@/lib/api/api-client";
+import { del, get } from "@/lib/api/api-client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { normalizeError } from "@/lib/api/errors";
-import type { ApiGateActive, ApiGateSession, ApiSessionState, ApiActiveVehicle } from "@/features/gate-operations/api/types";
+import type { ApiGateActive } from "@/features/gate-operations/api/types";
 import type { NormalizedError } from "@/types/api";
 
 export async function getActiveSessionsApi(): Promise<ApiGateActive> {
@@ -14,11 +14,13 @@ export async function getActiveSessionsApi(): Promise<ApiGateActive> {
   }
 }
 
-export async function getSessionByVehicleApi(vehicleId: string): Promise<ApiSessionState> {
+export async function forceCloseSessionApi(vehicleId: string): Promise<void> {
   try {
-    const response = await get<ApiSessionState>(`/gate/session/${vehicleId}`);
-    if (response.success && response.data) return response.data;
-    throw { code: "UNKNOWN", message: response.message || "Failed to fetch session" } as NormalizedError;
+    const response = await del<{ session_id: string; vehicle_id: string; current_state: string }>(
+      ENDPOINTS.GATE.SESSION(vehicleId),
+    );
+    if (response.success) return;
+    throw { code: "UNKNOWN", message: response.message || "Failed to close session" } as NormalizedError;
   } catch (error) {
     throw normalizeError(error);
   }

@@ -13,7 +13,8 @@ function KpiCard({ kpi, index }: { kpi: KpiMetric; index: number }) {
   const hasUnit = !!kpi.unit && kpi.unit !== "%";
   const decimals = kpi.unit === "%" ? 1 : 0;
 
-  const data = kpi.sparkline.map((y, x) => ({ x, y }));
+  const data = (kpi.sparkline ?? []).map((y, x) => ({ x, y }));
+  const hasSparkline = data.length >= 2;
 
   return (
     <motion.div
@@ -65,27 +66,29 @@ function KpiCard({ kpi, index }: { kpi: KpiMetric; index: number }) {
           <span className="text-xs text-muted-foreground">{kpi.comparisonLabel}</span>
         </div>
 
-        <div className="mt-3 h-10 w-full">
-          <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-full w-full">
-            <defs>
-              <linearGradient id={`spark-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={positive ? CHART.success : CHART.danger} stopOpacity="0.35" />
-                <stop offset="100%" stopColor={positive ? CHART.success : CHART.danger} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <polyline
-              points={data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d.y / Math.max(...data.map((p) => p.y))) * 28}`).join(" ")}
-              fill="none"
-              stroke={positive ? CHART.success : CHART.danger}
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-            />
-            <polygon
-              points={`0,30 ${data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d.y / Math.max(...data.map((p) => p.y))) * 28}`).join(" ")} 100,30`}
-              fill={`url(#spark-${kpi.id})`}
-            />
-          </svg>
-        </div>
+        {hasSparkline && (
+          <div className="mt-3 h-10 w-full">
+            <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-full w-full">
+              <defs>
+                <linearGradient id={`spark-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={positive ? CHART.success : CHART.danger} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={positive ? CHART.success : CHART.danger} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polyline
+                points={data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d.y / Math.max(...data.map((p) => p.y))) * 28}`).join(" ")}
+                fill="none"
+                stroke={positive ? CHART.success : CHART.danger}
+                strokeWidth="1.5"
+                vectorEffect="non-scaling-stroke"
+              />
+              <polygon
+                points={`0,30 ${data.map((d, i) => `${(i / (data.length - 1)) * 100},${30 - (d.y / Math.max(...data.map((p) => p.y))) * 28}`).join(" ")} 100,30`}
+                fill={`url(#spark-${kpi.id})`}
+              />
+            </svg>
+          </div>
+        )}
 
         <p className="mt-2 text-[11px] leading-tight text-muted-foreground">{kpi.insight}</p>
       </Card>
@@ -96,7 +99,7 @@ function KpiCard({ kpi, index }: { kpi: KpiMetric; index: number }) {
 export function ExecutiveSummary({ kpis }: { kpis: KpiMetric[] }) {
   return (
     <section aria-label="Executive summary">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {kpis.map((k, i) => (
           <KpiCard key={k.id} kpi={k} index={i} />
         ))}

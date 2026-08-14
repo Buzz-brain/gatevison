@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCommandStore } from "@/store/command-store";
 import {
-  LayoutDashboard,
-  Monitor,
   ShieldCheck,
   Users,
   DoorOpen,
@@ -41,9 +39,6 @@ export function useCommand() {
       id: "navigation",
       label: "Navigation",
       items: [
-        { id: "nav-dash", label: "Dashboard", description: "System overview", icon: LayoutDashboard as LucideIcon, shortcut: ["G", "D"], keywords: ["home", "main"], onSelect: () => { navigate({ to: "/" }); store.close(); } },
-        { id: "nav-live", label: "Live Monitoring", description: "Camera feeds", icon: Monitor as LucideIcon, shortcut: ["G", "L"], keywords: ["camera", "feed"], onSelect: () => { navigate({ to: "/live-monitoring" }); store.close(); } },
-        { id: "nav-access", label: "Access Control", description: "Gate rules", icon: ShieldCheck as LucideIcon, shortcut: ["G", "A"], keywords: ["gate", "permission"], onSelect: () => { navigate({ to: "/access-control" }); store.close(); } },
         { id: "nav-identity", label: "Identity", description: "Vehicles & drivers", icon: Users as LucideIcon, shortcut: ["G", "I"], keywords: ["driver", "vehicle", "person"], onSelect: () => { navigate({ to: "/identity" }); store.close(); } },
         { id: "nav-gates", label: "Gate Operations", description: "Barrier control", icon: DoorOpen as LucideIcon, shortcut: ["G", "O"], keywords: ["barrier", "queue"], onSelect: () => { navigate({ to: "/gate-operations" }); store.close(); } },
         { id: "nav-reports", label: "Reports", description: "Analytics", icon: BarChart3 as LucideIcon, shortcut: ["G", "R"], keywords: ["analytics", "audit"], onSelect: () => { navigate({ to: "/reports" }); store.close(); } },
