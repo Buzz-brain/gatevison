@@ -12,6 +12,8 @@ class PipelineContext:
     camera_id: Optional[str] = None
     frame: Optional[np.ndarray] = None
     frame_metadata: dict = field(default_factory=dict)
+    face_frame: Optional[np.ndarray] = None
+    face_frame_metadata: dict = field(default_factory=dict)
     detections: list = field(default_factory=list)
     cropped_plates: list = field(default_factory=list)
     ocr_results: list = field(default_factory=list)
@@ -27,6 +29,8 @@ class PipelineContext:
     vehicle_fingerprint_results: list = field(default_factory=list)
     decision: Optional[dict] = None
     gate_workflow_result: Optional[dict] = None
+    direction: str = "entry"
+    require_face: Optional[bool] = None
 
     def add_timestamp(self, name: str) -> None:
         self.timestamps[name] = datetime.now(timezone.utc).isoformat()

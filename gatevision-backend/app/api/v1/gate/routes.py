@@ -1,7 +1,9 @@
 import logging
+import uuid
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.config.settings import settings
 from app.models.gate_session import GateSession
 from app.models.gate_transaction import GateTransaction
 from app.schemas.gate import (
@@ -13,7 +15,7 @@ from app.schemas.gate import (
 from app.services.gate.audit_service import AuditService
 from app.services.gate.entry_service import EntryError, EntryService
 from app.services.gate.exit_service import ExitError, ExitService
-from app.services.gate.session_service import SessionService
+from app.services.gate.session_service import SessionError, SessionService
 from app.services.gate.transaction_service import TransactionService
 from app.services.gate.workflow_service import WorkflowService
 
@@ -31,14 +33,38 @@ WORKFLOW_SVC = WorkflowService()
 @router.post("/entry")
 async def gate_entry(body: EntryRequest):
     try:
-        result = await WORKFLOW_SVC.run_entry_workflow(
-            vehicle_id=body.vehicle_id,
-            decision=body.decision,
-            request_id=body.request_id,
-            driver_id=body.driver_id,
-            gate_name=body.gate_name,
-            notes=body.notes,
-        )
+        if settings.DECISION_MODE == "session":
+            plate = body.plate or body.vehicle_id
+            if not plate:
+                raise HTTPException(
+                    status_code=400,
+                    detail="'plate' is required in session verification mode",
+                )
+            result = await WORKFLOW_SVC.run_session_entry(
+                plate_text=plate,
+                request_id=body.request_id or uuid.uuid4().hex[:12],
+                gate_name=body.gate_name,
+                notes=body.notes,
+                face_embedding=body.face_embedding,
+                vehicle_embedding=body.vehicle_embedding,
+                face_confidence=body.face_confidence,
+                vehicle_confidence=body.vehicle_confidence,
+                decision=body.decision,
+            )
+        else:
+            if not body.vehicle_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="'vehicle_id' is required in identity verification mode",
+                )
+            result = await WORKFLOW_SVC.run_entry_workflow(
+                vehicle_id=body.vehicle_id,
+                decision=body.decision,
+                request_id=body.request_id,
+                driver_id=body.driver_id,
+                gate_name=body.gate_name,
+                notes=body.notes,
+            )
         if not result.success:
             raise HTTPException(status_code=400, detail=result.error)
         return {
@@ -59,14 +85,36 @@ async def gate_entry(body: EntryRequest):
 @router.post("/exit")
 async def gate_exit(body: ExitRequest):
     try:
-        result = await WORKFLOW_SVC.run_exit_workflow(
-            vehicle_id=body.vehicle_id,
-            decision=body.decision,
-            request_id=body.request_id,
-            driver_id=body.driver_id,
-            gate_name=body.gate_name,
-            notes=body.notes,
-        )
+        if settings.DECISION_MODE == "session":
+            plate = body.plate or body.vehicle_id
+            if not plate:
+                raise HTTPException(
+                    status_code=400,
+                    detail="'plate' is required in session verification mode",
+                )
+            result = await WORKFLOW_SVC.run_session_exit(
+                plate_text=plate,
+                request_id=body.request_id or uuid.uuid4().hex[:12],
+                gate_name=body.gate_name,
+                notes=body.notes,
+                face_embedding=body.face_embedding,
+                vehicle_embedding=body.vehicle_embedding,
+                decision=body.decision,
+            )
+        else:
+            if not body.vehicle_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="'vehicle_id' is required in identity verification mode",
+                )
+            result = await WORKFLOW_SVC.run_exit_workflow(
+                vehicle_id=body.vehicle_id,
+                decision=body.decision,
+                request_id=body.request_id,
+                driver_id=body.driver_id,
+                gate_name=body.gate_name,
+                notes=body.notes,
+            )
         if not result.success:
             raise HTTPException(status_code=400, detail=result.error)
         return {
@@ -107,6 +155,41 @@ async def get_session(vehicle_id: str):
             "active": session.active,
             "created_at": session.created_at.isoformat(),
             "updated_at": session.updated_at.isoformat(),
+        },
+    }
+
+
+@router.delete("/session/{vehicle_id}")
+async def force_close_session(vehicle_id: str):
+    try:
+        session = await SESSION_SVC.force_close(vehicle_id)
+    except SessionError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    txn = await TXN_SVC.create_transaction(
+        session_id=session.session_id,
+        vehicle_id=vehicle_id,
+        action="FORCE_EXIT",
+        decision="ADMIN_OVERRIDE",
+        gate_name="Main Gate",
+        notes="Session force-closed by operator",
+    )
+    return {
+        "success": True,
+        "message": f"Session for vehicle '{vehicle_id}' closed",
+        "data": {
+            "session_id": session.session_id,
+            "vehicle_id": session.vehicle_id,
+            "current_state": session.current_state,
+            "last_exit_time": (
+                session.last_exit_time.isoformat()
+                if session.last_exit_time else None
+            ),
+            "transaction": {
+                "transaction_id": txn.transaction_id,
+                "action": txn.action,
+                "decision": txn.decision,
+                "timestamp": txn.timestamp.isoformat(),
+            },
         },
     }
 

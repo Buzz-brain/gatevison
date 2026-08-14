@@ -15,6 +15,15 @@ class GateSession(Document):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+    # Session-based verification (Mode A) capture data. vehicle_id holds the
+    # observed plate in session mode; plate_text is the normalized plate.
+    plate_text: Optional[str] = None
+    vehicle_embedding: Optional[list[float]] = None
+    face_embedding: Optional[list[float]] = None
+    entry_confidence: Optional[dict] = None
+    decision_mode: Optional[str] = None
+    exit_confidence: Optional[dict] = None
+
     class Settings:
         name = "gate_sessions"
         use_state_management = True

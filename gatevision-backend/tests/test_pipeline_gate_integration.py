@@ -43,7 +43,7 @@ async def test_pipeline_with_gate_workflow(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.95,
                     "cropped_plate_path": "/tmp/plate.jpg",
                 }
@@ -52,18 +52,19 @@ async def test_pipeline_with_gate_workflow(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock(
-        return_value=MagicMock(
-            raw_text="ABC-1234",
-            cleaned_text="ABC-1234",
-            confidence=0.92,
-            validation_status="validated",
-            validation_message="",
-        )
+    mock_ocr_svc.read_many = AsyncMock(
+        return_value=[{
+            "plate_index": 0,
+            "raw_text": "ABC-1234",
+            "cleaned_text": "ABC-1234",
+            "confidence": 0.92,
+            "validation_status": "validated",
+            "validation_message": "",
+        }]
     )
 
     mock_wf_svc = MagicMock(spec=WorkflowService)
-    mock_wf_svc.run_entry_workflow = AsyncMock(
+    mock_wf_svc.run_session_entry = AsyncMock(
         return_value=make_workflow_result(success=True, action="ENTRY")
     )
 
@@ -114,7 +115,7 @@ async def test_pipeline_gate_workflow_no_plate(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     mock_wf_svc = MagicMock(spec=WorkflowService)
 
@@ -161,7 +162,7 @@ async def test_pipeline_gate_workflow_not_grant(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.95,
                     "cropped_plate_path": "/tmp/plate.jpg",
                 }
@@ -170,14 +171,15 @@ async def test_pipeline_gate_workflow_not_grant(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock(
-        return_value=MagicMock(
-            raw_text="ABC-1234",
-            cleaned_text="ABC-1234",
-            confidence=0.92,
-            validation_status="validated",
-            validation_message="",
-        )
+    mock_ocr_svc.read_many = AsyncMock(
+        return_value=[{
+            "plate_index": 0,
+            "raw_text": "ABC-1234",
+            "cleaned_text": "ABC-1234",
+            "confidence": 0.92,
+            "validation_status": "validated",
+            "validation_message": "",
+        }]
     )
 
     mock_wf_svc = MagicMock(spec=WorkflowService)
@@ -227,7 +229,7 @@ async def test_pipeline_without_gate_workflow(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     services = PipelineServices(
         detection_service=mock_det_svc,

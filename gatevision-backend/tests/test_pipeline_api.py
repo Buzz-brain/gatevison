@@ -56,7 +56,29 @@ async def test_process_upload_invalid_file(app):
             "/pipeline/process/upload",
             files={"file": ("test.jpg", b"not-a-real-image", "image/jpeg")},
         )
-        assert resp.status_code == 500
+        assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_process_upload_empty_file(app):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/pipeline/process/upload",
+            files={"file": ("empty.jpg", b"", "image/jpeg")},
+        )
+        assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_process_upload_corrupt_file(app):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/pipeline/process/upload",
+            files={"file": ("corrupt.jpg", b"\x00\x01\x02\x03\xff\xff", "image/jpeg")},
+        )
+        assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -64,4 +86,4 @@ async def test_process_camera_no_camera(app):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post("/pipeline/process/camera?camera_id=nonexistent")
-        assert resp.status_code == 500
+        assert resp.status_code == 422

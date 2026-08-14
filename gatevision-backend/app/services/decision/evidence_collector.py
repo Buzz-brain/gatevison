@@ -67,7 +67,7 @@ class EvidenceCollector:
         return Evidence(
             module_name="ocr",
             confidence=best.get("confidence", 0.0),
-            matched=best.get("validation_status") == "validated",
+            matched=best.get("validation_status") in ("valid", "validated"),
             score=best.get("confidence"),
             metadata=best,
         )

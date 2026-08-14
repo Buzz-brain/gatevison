@@ -28,6 +28,9 @@ class FaceRecognitionResult(BaseModel):
     face_count: int = 0
     similarity_score: float | None = None
     matched: bool = False
+    matched_driver_id: str | None = None
+    matched_driver_name: str | None = None
+    embedding_distance: float | None = None
 
 
 class PipelineData(BaseModel):

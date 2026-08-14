@@ -42,7 +42,7 @@ async def test_pipeline_with_decision_engine(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.95,
                     "cropped_plate_path": "/tmp/plate.jpg",
                 }
@@ -152,7 +152,7 @@ async def test_pipeline_decision_full_flow(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.98,
                     "cropped_plate_path": "",
                 }

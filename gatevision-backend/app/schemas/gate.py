@@ -30,21 +30,33 @@ class GateTransactionResponse(BaseModel):
 
 
 class EntryRequest(BaseModel):
-    request_id: str
-    vehicle_id: str
+    request_id: Optional[str] = None
+    vehicle_id: Optional[str] = None
+    plate: Optional[str] = None
     driver_id: Optional[str] = None
     gate_name: str = "Main Gate"
-    decision: str
+    gate_id: Optional[str] = None
+    decision: str = "GRANT"
     notes: Optional[str] = None
+    face_embedding: Optional[list[float]] = None
+    vehicle_embedding: Optional[list[float]] = None
+    face_confidence: Optional[float] = None
+    vehicle_confidence: Optional[float] = None
 
 
 class ExitRequest(BaseModel):
-    request_id: str
-    vehicle_id: str
+    request_id: Optional[str] = None
+    vehicle_id: Optional[str] = None
+    plate: Optional[str] = None
     driver_id: Optional[str] = None
     gate_name: str = "Main Gate"
-    decision: str
+    gate_id: Optional[str] = None
+    decision: str = "GRANT"
     notes: Optional[str] = None
+    face_embedding: Optional[list[float]] = None
+    vehicle_embedding: Optional[list[float]] = None
+    face_confidence: Optional[float] = None
+    vehicle_confidence: Optional[float] = None
 
 
 class GateActionResponse(BaseModel):

@@ -76,11 +76,27 @@ async def test_read_from_image_no_text(mock_repository):
 @pytest.mark.asyncio
 async def test_read_from_image_failure(mock_repository):
     reader = MagicMock()
-    reader.extract_text.side_effect = OcrReadError("OCR failed")
+    reader.read.side_effect = OcrReadError("OCR failed")
     service = OcrService(plate_reader=reader, repository=mock_repository)
     frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
     result = await service.read_from_image(frame)
     assert result.validation_status == "error"
+
+
+@pytest.mark.asyncio
+async def test_read_many_prefers_valid_plate(mock_repository):
+    reader = MagicMock()
+    reader.read_many.return_value = [[
+        {"text": "LAGOS", "confidence": 0.97, "inference_time_ms": 10.0},
+        {"text": "KJA 987FT", "confidence": 0.77, "inference_time_ms": 10.0},
+    ]]
+    service = OcrService(plate_reader=reader, repository=mock_repository)
+    frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+    responses = await service.read_many([frame])
+    assert len(responses) == 1
+    assert responses[0]["raw_text"] == "KJA 987FT"
+    assert responses[0]["cleaned_text"] == "KJA987FT"
+    assert responses[0]["validation_status"] == "valid"
 
 
 @pytest.mark.asyncio

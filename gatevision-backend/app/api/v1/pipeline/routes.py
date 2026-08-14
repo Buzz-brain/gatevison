@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query, Request
 
 from app.schemas.pipeline import (
     FaceRecognitionResult,
@@ -13,7 +13,10 @@ from app.schemas.pipeline import (
     StageMetricsResponse,
     StageResultResponse,
 )
-from app.services.ai.orchestrator.exceptions import PipelineExecutionError
+from app.services.ai.orchestrator.exceptions import (
+    ContextValidationError,
+    PipelineExecutionError,
+)
 from app.services.ai.orchestrator.metrics import get_pipeline_metrics
 from app.services.ai.orchestrator.orchestrator import (
     PipelineOrchestrator,
@@ -32,15 +35,27 @@ def get_orchestrator() -> PipelineOrchestrator:
 @router.post("/process/upload")
 async def pipeline_process_upload(
     file: UploadFile = File(...),
+    face_file: Optional[UploadFile] = File(None),
     camera_id: Optional[str] = Query(None),
+    direction: str = Query("entry", pattern="^(entry|exit)$"),
+    require_face: Optional[bool] = Query(None),
     orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
+    request: Request = None,
 ):
     try:
         data = await file.read()
+        face_data = await face_file.read() if face_file is not None else None
         result = await orchestrator.execute_from_upload(
-            data, camera_id=camera_id,
+            data,
+            camera_id=camera_id,
+            direction=direction,
+            request_id=getattr(request.state, "request_id", None),
+            require_face=require_face,
+            face_data=face_data,
         )
         return _to_api_response(result)
+    except ContextValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except PipelineExecutionError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -48,11 +63,21 @@ async def pipeline_process_upload(
 @router.post("/process/camera")
 async def pipeline_process_camera(
     camera_id: str = Query("default"),
+    direction: str = Query("entry", pattern="^(entry|exit)$"),
+    require_face: Optional[bool] = Query(None),
     orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
+    request: Request = None,
 ):
     try:
-        result = await orchestrator.execute_from_camera(camera_id=camera_id)
+        result = await orchestrator.execute_from_camera(
+            camera_id=camera_id,
+            direction=direction,
+            request_id=getattr(request.state, "request_id", None),
+            require_face=require_face,
+        )
         return _to_api_response(result)
+    except ContextValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except PipelineExecutionError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -143,6 +168,9 @@ def _to_api_response(result):
             face_count=r.get("face_count", 0),
             similarity_score=r.get("similarity_score"),
             matched=r.get("matched", False),
+            matched_driver_id=r.get("matched_driver_id"),
+            matched_driver_name=r.get("matched_driver_name"),
+            embedding_distance=r.get("embedding_distance"),
         )
         for r in result.face_recognitions
     ]
@@ -160,9 +188,16 @@ def _to_api_response(result):
         errors=result.errors,
     )
 
-    return {
+    payload = {
         "success": result.success,
         "message": "Pipeline executed successfully" if result.success
         else "Pipeline completed with errors",
-        "data": data,
+        "data": data.model_dump(),
     }
+
+    if result.decision:
+        payload["data"]["decision"] = result.decision
+    if result.gate_workflow_result:
+        payload["data"]["gate_workflow_result"] = result.gate_workflow_result
+
+    return payload

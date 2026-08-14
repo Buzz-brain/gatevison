@@ -1,10 +1,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import numpy as np
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 
 from app.api.v1.face.routes import router, SERVICE
+from app.services.admin.enrollment_service import EnrollmentError
 
 
 @pytest.fixture(autouse=True)
@@ -91,3 +93,54 @@ async def test_compare_invalid_metric(app):
             json={"embedding_a": emb, "embedding_b": emb},
         )
         assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_enroll(app):
+    mock_enroll = AsyncMock(return_value={
+        "driver_id": "DRV-001",
+        "full_name": "Test Driver",
+        "face_embedding_dimension": 512,
+    })
+    svc = MagicMock()
+    svc.enroll_driver_with_image = mock_enroll
+    with patch(
+        "app.api.v1.face.routes.EnrollmentService", return_value=svc,
+    ), patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.read_bytes",
+        return_value=np.zeros((100, 100, 3), dtype=np.uint8),
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/face/enroll",
+                data={"driver_id": "DRV-001", "full_name": "Test Driver"},
+                files={"file": ("face.jpg", b"fakedata", "image/jpeg")},
+            )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["data"]["face_embedding_dimension"] == 512
+    mock_enroll.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_enroll_no_face_error(app):
+    svc = MagicMock()
+    svc.enroll_driver_with_image = AsyncMock(
+        side_effect=EnrollmentError("No face detected in image")
+    )
+    with patch(
+        "app.api.v1.face.routes.EnrollmentService", return_value=svc,
+    ), patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.read_bytes",
+        return_value=np.zeros((100, 100, 3), dtype=np.uint8),
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/face/enroll",
+                data={"driver_id": "DRV-002", "full_name": "No Face"},
+                files={"file": ("face.jpg", b"fakedata", "image/jpeg")},
+            )
+    assert resp.status_code == 400

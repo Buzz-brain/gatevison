@@ -1,10 +1,12 @@
 import logging
 import time
+from pathlib import Path
 from typing import Optional
 
 import cv2
 import numpy as np
 
+from app.config.settings import settings
 from app.services.ai.camera.frame_processor import FrameProcessor
 from app.services.ai.face_recognition.aligner import FaceAligner, FaceAlignmentError
 from app.services.ai.face_recognition.detector import FaceDetector, FaceDetectionError
@@ -35,6 +37,18 @@ class FaceRecognitionService:
         self.similarity = similarity_service or SimilarityService()
         self.repository = repository or FaceRepository()
         self.logger = FaceRecognitionLogger()
+
+    def is_available(self) -> bool:
+        """True when the InsightFace model directory is present locally.
+
+        Loading the model when it is absent triggers a large (~200MB)
+        auto-download on first use, which is unacceptable inside a live
+        pipeline request, so the orchestrator checks this before running.
+        """
+        model_dir = (
+            Path.home() / ".insightface" / "models" / settings.FACE_MODEL_NAME
+        )
+        return model_dir.is_dir()
 
     async def recognize_from_image(
         self, image: np.ndarray, reference_embedding: Optional[list[float]] = None,

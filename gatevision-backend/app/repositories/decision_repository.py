@@ -36,6 +36,19 @@ class DecisionRepository:
         return await DecisionRecord.find_all().count()
 
     @staticmethod
+    async def delete_by_id(record_id: str) -> bool:
+        record = await DecisionRecord.get(record_id)
+        if record is None:
+            return False
+        await record.delete()
+        return True
+
+    @staticmethod
+    async def delete_all() -> int:
+        result = await DecisionRecord.find_all().delete()
+        return result.deleted_count if result is not None else 0
+
+    @staticmethod
     async def statistics() -> dict:
         total = await DecisionRecord.find_all().count()
         grants = await DecisionRecord.find(

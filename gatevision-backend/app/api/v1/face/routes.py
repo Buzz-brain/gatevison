@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from app.schemas.face import (
     FaceCompareResponse,
@@ -9,11 +9,13 @@ from app.schemas.face import (
     FaceModelInfoResponse,
     FaceRecognizeResponse,
 )
+from app.services.ai.camera.frame_processor import FrameProcessor
 from app.services.ai.face_recognition.face_loader import FaceLoadError, FaceLoader
 from app.services.ai.face_recognition.recognition_service import (
     FaceRecognitionService,
 )
 from app.services.ai.face_recognition.similarity import SimilarityService
+from app.services.admin.enrollment_service import EnrollmentError, EnrollmentService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/face", tags=["Face"])
@@ -85,6 +87,52 @@ async def face_compare(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/enroll")
+async def face_enroll(
+    file: UploadFile = File(...),
+    driver_id: str = Form(...),
+    full_name: str = Form(...),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    department: Optional[str] = Form(None),
+):
+    """Enroll a driver by storing the face embedding extracted from a photo.
+
+    The embedding is persisted on the DriverProfile, making the driver part
+    of the live face-matching gallery used by the pipeline face stage.
+    """
+    try:
+        image = FrameProcessor.read_bytes(await file.read())
+        if image is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not decode image file",
+            )
+        svc = EnrollmentService(
+            face_recognition_service=FaceRecognitionService(),
+        )
+        data = await svc.enroll_driver_with_image(
+            driver_id=driver_id,
+            image=image,
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            department=department,
+        )
+        return {
+            "success": True,
+            "message": f"Driver '{driver_id}' enrolled with face embedding",
+            "data": data,
+        }
+    except EnrollmentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Face enrollment failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Enrollment failed: {e}")
 
 
 @router.get("/history")

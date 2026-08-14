@@ -4,12 +4,27 @@ from pathlib import Path
 
 from app.config.settings import settings
 
+_LOG_FIELDS = ("request_id", "event", "stage", "duration_ms", "decision", "error", "model")
+
+
+class StructuredFormatter(logging.Formatter):
+    """Include structured extra fields (request_id, stage timings, decision) in every line."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        base = super().format(record)
+        parts = []
+        for key in _LOG_FIELDS:
+            value = getattr(record, key, None)
+            if value is not None:
+                parts.append(f"{key}={value}")
+        return f"{base} {(' | '.join(parts))}" if parts else base
+
 
 def setup_logging():
     log_dir = Path(settings.LOG_DIR)
     log_dir.mkdir(exist_ok=True)
 
-    formatter = logging.Formatter(
+    formatter = StructuredFormatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )

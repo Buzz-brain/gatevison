@@ -17,12 +17,12 @@ from app.api.v1.gate.routes import (
 
 @pytest.fixture(autouse=True)
 def mock_workflow():
-    WORKFLOW_SVC.run_entry_workflow = AsyncMock(
+    WORKFLOW_SVC.run_session_entry = AsyncMock(
         return_value=MagicMock(
             success=True,
             action="ENTRY",
             vehicle_id="ABC-1234",
-            message="Entry processed",
+            message="Entry session created",
             session={
                 "session_id": "ses-001",
                 "vehicle_id": "ABC-1234",
@@ -36,12 +36,12 @@ def mock_workflow():
             error=None,
         )
     )
-    WORKFLOW_SVC.run_exit_workflow = AsyncMock(
+    WORKFLOW_SVC.run_session_exit = AsyncMock(
         return_value=MagicMock(
             success=True,
             action="EXIT",
             vehicle_id="ABC-1234",
-            message="Exit processed",
+            message="Exit session validated",
             session={
                 "session_id": "ses-001",
                 "vehicle_id": "ABC-1234",
@@ -181,7 +181,7 @@ async def test_entry_success(app):
 
 @pytest.mark.asyncio
 async def test_entry_rejected(app):
-    WORKFLOW_SVC.run_entry_workflow = AsyncMock(
+    WORKFLOW_SVC.run_session_entry = AsyncMock(
         return_value=MagicMock(
             success=False,
             action="ENTRY",
@@ -224,13 +224,13 @@ async def test_exit_success(app):
 
 @pytest.mark.asyncio
 async def test_exit_rejected(app):
-    WORKFLOW_SVC.run_exit_workflow = AsyncMock(
+    WORKFLOW_SVC.run_session_exit = AsyncMock(
         return_value=MagicMock(
             success=False,
             action="EXIT",
             vehicle_id="ABC-1234",
             message="Exit rejected",
-            error="No active session",
+            error="No active session matched",
             session=None,
             transaction=None,
         )

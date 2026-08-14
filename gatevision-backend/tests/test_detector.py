@@ -96,6 +96,111 @@ def test_detect_and_crop(mock_loader_cls):
             assert "cropped_plate_path" in detections[0]
 
 
+@patch("app.services.ai.plate_detection.detector.ModelLoader")
+def test_detect_filters_non_plate_classes(mock_loader_cls):
+    mock_loader = MagicMock()
+    mock_loader_cls.return_value = mock_loader
+    mock_model = MagicMock()
+    mock_loader.get_model.return_value = mock_model
+
+    person_box = MagicMock()
+    person_box.xyxy = [MagicMock()]
+    person_box.xyxy[0].tolist.return_value = [10.0, 10.0, 50.0, 120.0]
+    person_box.conf = [0.95]
+    person_box.cls = [0]
+
+    result = MagicMock()
+    result.boxes = [person_box]
+    result.names = {0: "person", 1: "car", 2: "bus"}
+    mock_model.return_value = [result]
+
+    detector = PlateDetector()
+    frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+    detections = detector.detect(frame)
+    assert detections == []
+
+
+@patch("app.services.ai.plate_detection.detector.ModelLoader")
+def test_detect_keeps_only_plate_class(mock_loader_cls):
+    mock_loader = MagicMock()
+    mock_loader_cls.return_value = mock_loader
+    mock_model = MagicMock()
+    mock_loader.get_model.return_value = mock_model
+
+    plate_box = MagicMock()
+    plate_box.xyxy = [MagicMock()]
+    plate_box.xyxy[0].tolist.return_value = [100.0, 150.0, 300.0, 400.0]
+    plate_box.conf = [0.93]
+    plate_box.cls = [0]
+
+    car_box = MagicMock()
+    car_box.xyxy = [MagicMock()]
+    car_box.xyxy[0].tolist.return_value = [5.0, 5.0, 500.0, 460.0]
+    car_box.conf = [0.97]
+    car_box.cls = [1]
+
+    result = MagicMock()
+    result.boxes = [car_box, plate_box]
+    result.names = {0: "license_plate", 1: "car"}
+    mock_model.return_value = [result]
+
+    detector = PlateDetector()
+    frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+    detections = detector.detect(frame)
+    assert len(detections) == 1
+    assert detections[0]["bbox"] == [100, 150, 300, 400]
+    assert detections[0]["confidence"] == pytest.approx(0.93, abs=0.001)
+
+
+@patch("app.services.ai.plate_detection.detector.ModelLoader")
+def test_detect_plate_class_variants(mock_loader_cls):
+    mock_loader = MagicMock()
+    mock_loader_cls.return_value = mock_loader
+    mock_model = MagicMock()
+    mock_loader.get_model.return_value = mock_model
+
+    box = MagicMock()
+    box.xyxy = [MagicMock()]
+    box.xyxy[0].tolist.return_value = [10.0, 20.0, 210.0, 60.0]
+    box.conf = [0.80]
+    box.cls = [3]
+
+    result = MagicMock()
+    result.boxes = [box]
+    result.names = {3: "number_plate"}
+    mock_model.return_value = [result]
+
+    detector = PlateDetector()
+    frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+    detections = detector.detect(frame)
+    assert len(detections) == 1
+    assert detections[0]["bbox"] == [10, 20, 210, 60]
+
+
+@patch("app.services.ai.plate_detection.detector.ModelLoader")
+def test_detect_unknown_names_keeps_all_boxes(mock_loader_cls):
+    mock_loader = MagicMock()
+    mock_loader_cls.return_value = mock_loader
+    mock_model = MagicMock()
+    mock_loader.get_model.return_value = mock_model
+
+    box = MagicMock()
+    box.xyxy = [MagicMock()]
+    box.xyxy[0].tolist.return_value = [100.0, 150.0, 300.0, 400.0]
+    box.conf = [0.94]
+    box.cls = [2]
+
+    result = MagicMock()
+    result.boxes = [box]
+    mock_model.return_value = [result]
+
+    detector = PlateDetector()
+    frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+    detections = detector.detect(frame)
+    assert len(detections) == 1
+    assert detections[0]["confidence"] == pytest.approx(0.94, abs=0.001)
+
+
 def test_crop_plate_invalid_bbox():
     detector = PlateDetector()
     frame = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)

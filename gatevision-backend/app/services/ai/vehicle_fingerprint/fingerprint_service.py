@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -35,6 +36,25 @@ class VehicleFingerprintService:
 
     def is_loaded(self) -> bool:
         return self._loader.is_loaded()
+
+    def is_available(self) -> bool:
+        """True when the ResNet50 ImageNet weights are already cached locally.
+
+        Loading them otherwise triggers a ~100MB download from pytorch.org on
+        first use, which is unacceptable inside a live pipeline request, so
+        the orchestrator checks this before running.
+        """
+        try:
+            from torchvision.models import ResNet50_Weights
+
+            weights = ResNet50_Weights.IMAGENET1K_V2
+            filename = weights.url.rsplit("/", 1)[-1]
+            checkpoint = (
+                Path.home() / ".cache" / "torch" / "hub" / "checkpoints" / filename
+            )
+            return checkpoint.exists()
+        except Exception:
+            return False
 
     async def extract_fingerprint(
         self, image: np.ndarray, plate_text: Optional[str] = None,

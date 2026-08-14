@@ -1,0 +1,278 @@
+{
+  "generated_at": "2026-08-06T22:09:03Z",
+  "warmup": {
+    "warm_up": true,
+    "models": {
+      "plate_detector": {
+        "loaded": true,
+        "load_ms": 776.14
+      },
+      "ocr": {
+        "loaded": true,
+        "load_ms": 6333.77
+      }
+    }
+  },
+  "runs": [
+    {
+      "direction": "entry",
+      "image": "bus.jpg",
+      "success": true,
+      "total_ms": 6594.1,
+      "wall_ms": 6602.09,
+      "plates_detected": 6,
+      "plates_recognized": 2,
+      "recognized": [
+        "AEOMEM",
+        "YW0"
+      ],
+      "decision": "MANUAL_REVIEW",
+      "gate_action": "ENTRY",
+      "gate_success": false,
+      "stage_results": {
+        "_capture_frame": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        },
+        "_detect_plates": {
+          "ok": true,
+          "ms": 389.09,
+          "error": null
+        },
+        "_crop_plates": {
+          "ok": true,
+          "ms": 0.83,
+          "error": null
+        },
+        "_recognize_plates": {
+          "ok": true,
+          "ms": 6203.25,
+          "error": null
+        },
+        "_evaluate_decision": {
+          "ok": true,
+          "ms": 0.39,
+          "error": null
+        },
+        "_process_gate_workflow": {
+          "ok": true,
+          "ms": 0.01,
+          "error": null
+        },
+        "_aggregate_results": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        }
+      }
+    },
+    {
+      "direction": "entry",
+      "image": "zidane.jpg",
+      "success": true,
+      "total_ms": 5457.26,
+      "wall_ms": 5464.85,
+      "plates_detected": 3,
+      "plates_recognized": 0,
+      "recognized": [],
+      "decision": "DENY",
+      "gate_action": "ENTRY",
+      "gate_success": false,
+      "stage_results": {
+        "_capture_frame": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        },
+        "_detect_plates": {
+          "ok": true,
+          "ms": 554.69,
+          "error": null
+        },
+        "_crop_plates": {
+          "ok": true,
+          "ms": 1.58,
+          "error": null
+        },
+        "_recognize_plates": {
+          "ok": true,
+          "ms": 4900.19,
+          "error": null
+        },
+        "_evaluate_decision": {
+          "ok": true,
+          "ms": 0.21,
+          "error": null
+        },
+        "_process_gate_workflow": {
+          "ok": true,
+          "ms": 0.01,
+          "error": null
+        },
+        "_aggregate_results": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        }
+      }
+    },
+    {
+      "direction": "exit",
+      "image": "bus.jpg",
+      "success": true,
+      "total_ms": 6997.81,
+      "wall_ms": 7009.34,
+      "plates_detected": 6,
+      "plates_recognized": 2,
+      "recognized": [
+        "AEOMEM",
+        "YW0"
+      ],
+      "decision": "MANUAL_REVIEW",
+      "gate_action": "EXIT",
+      "gate_success": false,
+      "stage_results": {
+        "_capture_frame": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        },
+        "_detect_plates": {
+          "ok": true,
+          "ms": 442.32,
+          "error": null
+        },
+        "_crop_plates": {
+          "ok": true,
+          "ms": 0.89,
+          "error": null
+        },
+        "_recognize_plates": {
+          "ok": true,
+          "ms": 6553.95,
+          "error": null
+        },
+        "_evaluate_decision": {
+          "ok": true,
+          "ms": 0.35,
+          "error": null
+        },
+        "_process_gate_workflow": {
+          "ok": true,
+          "ms": 0.01,
+          "error": null
+        },
+        "_aggregate_results": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        }
+      }
+    },
+    {
+      "direction": "exit",
+      "image": "zidane.jpg",
+      "success": true,
+      "total_ms": 3172.81,
+      "wall_ms": 3179.68,
+      "plates_detected": 3,
+      "plates_recognized": 0,
+      "recognized": [],
+      "decision": "DENY",
+      "gate_action": "EXIT",
+      "gate_success": false,
+      "stage_results": {
+        "_capture_frame": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        },
+        "_detect_plates": {
+          "ok": true,
+          "ms": 241.59,
+          "error": null
+        },
+        "_crop_plates": {
+          "ok": true,
+          "ms": 0.93,
+          "error": null
+        },
+        "_recognize_plates": {
+          "ok": true,
+          "ms": 2929.75,
+          "error": null
+        },
+        "_evaluate_decision": {
+          "ok": true,
+          "ms": 0.26,
+          "error": null
+        },
+        "_process_gate_workflow": {
+          "ok": true,
+          "ms": 0.01,
+          "error": null
+        },
+        "_aggregate_results": {
+          "ok": true,
+          "ms": 0.0,
+          "error": null
+        }
+      }
+    }
+  ],
+  "summary": {
+    "run_count": 4,
+    "avg_total_ms": 5555.49,
+    "max_total_ms": 6997.81,
+    "success_count": 4,
+    "failure_count": 0,
+    "stage_averages": {
+      "_aggregate_results": {
+        "avg_ms": 0.0,
+        "max_ms": 0.0,
+        "calls": 4
+      },
+      "_capture_frame": {
+        "avg_ms": 0.0,
+        "max_ms": 0.0,
+        "calls": 4
+      },
+      "_crop_plates": {
+        "avg_ms": 1.06,
+        "max_ms": 1.58,
+        "calls": 4
+      },
+      "_detect_plates": {
+        "avg_ms": 406.92,
+        "max_ms": 554.69,
+        "calls": 4
+      },
+      "_evaluate_decision": {
+        "avg_ms": 0.3,
+        "max_ms": 0.39,
+        "calls": 4
+      },
+      "_process_gate_workflow": {
+        "avg_ms": 0.01,
+        "max_ms": 0.01,
+        "calls": 4
+      },
+      "_recognize_plates": {
+        "avg_ms": 5146.79,
+        "max_ms": 6553.95,
+        "calls": 4
+      }
+    }
+  },
+  "failure_modes": {
+    "corrupt": {
+      "graceful": true,
+      "detail": "ContextValidationError"
+    },
+    "empty": {
+      "graceful": true,
+      "detail": "ContextValidationError"
+    }
+  }
+}

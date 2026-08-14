@@ -163,6 +163,28 @@ def test_read_from_bytes(mock_fp, mock_loader_cls):
     assert results == []
 
 
+def test_pick_best_prefers_valid_plate_over_higher_conf_text():
+    results = [
+        {"text": "LAGOS", "confidence": 0.97},
+        {"text": "KJA 987FT", "confidence": 0.77},
+    ]
+    best = PlateReader.pick_best(results)
+    assert best["text"] == "KJA 987FT"
+
+
+def test_pick_best_falls_back_to_highest_confidence():
+    results = [
+        {"text": "LAGOS", "confidence": 0.97},
+        {"text": "WELCOME", "confidence": 0.77},
+    ]
+    best = PlateReader.pick_best(results)
+    assert best["text"] == "LAGOS"
+
+
+def test_pick_best_returns_none_for_empty():
+    assert PlateReader.pick_best([]) is None
+
+
 @patch("app.services.ai.ocr.plate_reader.OcrLoader")
 @patch("app.services.ai.ocr.plate_reader.FrameProcessor")
 def test_read_from_bytes_invalid(mock_fp, mock_loader_cls):

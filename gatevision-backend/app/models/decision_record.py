@@ -7,6 +7,7 @@ from pydantic import Field
 
 class DecisionRecord(Document):
     request_id: str = Field(index=True)
+    direction: str = "entry"
     overall_confidence: float = 0.0
     decision: str = ""
     explanation: str = ""

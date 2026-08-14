@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -43,22 +44,20 @@ class OcrService:
             source=f"image_{plate_detection_id or 'upload'}"
         )
 
-        raw_text = ""
         try:
-            raw_text = self.plate_reader.extract_text(image)
+            results = await asyncio.to_thread(self.plate_reader.read, image)
         except OcrReadError as e:
             self.ocr_logger.ocr_failure(str(e))
             return self._empty_response()
 
-        if not raw_text:
+        if not results:
             self.ocr_logger.no_text_detected()
             result = await self._save_result(
                 "", "", 0.0, 0.0, plate_detection_id
             )
             return self._to_read_response(result)
 
-        results = self.plate_reader.read(image)
-        best = results[0] if results else {}
+        best = PlateReader.pick_best(results) or results[0]
         confidence = best.get("confidence", 0.0)
         processing_time = best.get("inference_time_ms", 0.0)
         raw_text = best.get("text", "")
@@ -81,6 +80,42 @@ class OcrService:
         )
 
         return self._to_read_response(result)
+
+    async def read_many(self, images: list[np.ndarray]) -> list[dict]:
+        """OCR a batch of plate crops in a single call and return per-crop results.
+
+        The CPU-bound OCR runs in a worker thread so the event loop stays
+        responsive while the reader is working (30-50s on a busy frame).
+        """
+        per_image = await asyncio.to_thread(self.plate_reader.read_many, images)
+        responses: list[dict] = []
+        for i, results in enumerate(per_image):
+            if not results:
+                responses.append({
+                    "plate_index": i,
+                    "raw_text": "",
+                    "cleaned_text": "",
+                    "confidence": 0.0,
+                    "validation_status": "unreadable",
+                    "validation_message": "No text detected in crop",
+                })
+                continue
+            best = PlateReader.pick_best(results) or results[0]
+            raw_text = best.get("text", "")
+            confidence = best.get("confidence", 0.0)
+            processing_time = best.get("inference_time_ms", 0.0)
+            cleaned = TextCleaner.clean(raw_text)
+            validation = self.validator.validate(cleaned)
+            responses.append({
+                "plate_index": i,
+                "raw_text": raw_text,
+                "cleaned_text": cleaned,
+                "confidence": confidence,
+                "processing_time_ms": round(processing_time, 2),
+                "validation_status": "valid" if validation.valid else "invalid",
+                "validation_message": validation.message,
+            })
+        return responses
 
     async def read_from_bytes(
         self, data: bytes, plate_detection_id: Optional[str] = None
@@ -155,15 +190,32 @@ class OcrService:
         validation_status: str = "unchecked",
         validation_message: str = "",
     ) -> OcrResult:
-        return await self.repository.create_from_ocr(
-            raw_text=raw_text,
-            cleaned_text=cleaned_text,
-            confidence=confidence,
-            processing_time=processing_time,
-            validation_status=validation_status,
-            validation_message=validation_message,
-            plate_detection_id=plate_detection_id,
-        )
+        try:
+            return await self.repository.create_from_ocr(
+                raw_text=raw_text,
+                cleaned_text=cleaned_text,
+                confidence=confidence,
+                processing_time=processing_time,
+                validation_status=validation_status,
+                validation_message=validation_message,
+                plate_detection_id=plate_detection_id,
+            )
+        except Exception as e:
+            logger.warning("Failed to persist OCR result (continuing): %s", e)
+            # Database is down - return an in-memory result so the caller can
+            # still respond. Constructing the beanie Document here would raise
+            # CollectionWasNotInitialized, so use a plain namespace instead.
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                raw_text=raw_text,
+                cleaned_text=cleaned_text,
+                confidence=confidence,
+                processing_time=processing_time,
+                validation_status=validation_status,
+                validation_message=validation_message,
+                plate_detection_id=plate_detection_id,
+            )
 
     def _to_read_response(self, record: OcrResult) -> OcrReadResponse:
         return OcrReadResponse(

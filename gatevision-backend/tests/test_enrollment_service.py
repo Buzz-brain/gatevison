@@ -21,7 +21,14 @@ async def test_enroll_driver_success(sample_image):
         return_value={
             "face_detected": True,
             "face_count": 1,
-            "embeddings": [[0.1, 0.2, 0.3, 0.4]],
+            "detections": [
+                {
+                    "bbox": [0, 0, 10, 10],
+                    "confidence": 0.9,
+                    "embedding": [0.1, 0.2, 0.3, 0.4],
+                    "embedding_dimension": 4,
+                }
+            ],
         }
     )
     svc._registration.register_driver = AsyncMock(

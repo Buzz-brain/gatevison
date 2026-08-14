@@ -2,6 +2,7 @@ import asyncio
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
+from app.database.connection import _patch_motor_append_metadata
 from app.config.settings import settings
 from app.models.user import User
 from app.models.image import Image

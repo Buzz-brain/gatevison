@@ -3,8 +3,8 @@ from typing import Optional
 
 from app.models.gate_transaction import GateTransaction
 
-
 class GateTransactionRepository:
+
     @staticmethod
     async def create(txn: GateTransaction) -> GateTransaction:
         return await txn.insert()
@@ -15,6 +15,14 @@ class GateTransactionRepository:
     ) -> Optional[GateTransaction]:
         return await GateTransaction.find_one(
             GateTransaction.transaction_id == transaction_id
+        )
+
+    @staticmethod
+    async def get_by_request_id(
+        request_id: str,
+    ) -> Optional[GateTransaction]:
+        return await GateTransaction.find_one(
+            GateTransaction.request_id == request_id
         )
 
     @staticmethod
@@ -60,8 +68,63 @@ class GateTransactionRepository:
         )
 
     @staticmethod
+    def _filters(
+        search: Optional[str] = None,
+        decision: Optional[str] = None,
+    ) -> list:
+        import re
+        conditions: list = []
+        if search:
+            conditions.append({
+                "vehicle_id": {
+                    "$regex": re.escape(search.strip()),
+                    "$options": "i",
+                },
+            })
+        if decision:
+            conditions.append(GateTransaction.decision == decision.upper())
+        return conditions
+
+    @staticmethod
+    async def get_page(
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        decision: Optional[str] = None,
+    ) -> list[GateTransaction]:
+        conditions = GateTransactionRepository._filters(search, decision)
+        return (
+            await GateTransaction.find(*conditions)
+            .sort(-GateTransaction.timestamp)
+            .skip(skip)
+            .limit(limit)
+            .to_list()
+        )
+
+    @staticmethod
+    async def count_filtered(
+        search: Optional[str] = None,
+        decision: Optional[str] = None,
+    ) -> int:
+        conditions = GateTransactionRepository._filters(search, decision)
+        return await GateTransaction.find(*conditions).count()
+
+    @staticmethod
     async def count() -> int:
         return await GateTransaction.find_all().count()
+
+    @staticmethod
+    async def delete_by_id(txn_id: str) -> bool:
+        txn = await GateTransaction.get(txn_id)
+        if txn is None:
+            return False
+        await txn.delete()
+        return True
+
+    @staticmethod
+    async def delete_all() -> int:
+        result = await GateTransaction.find_all().delete()
+        return result.deleted_count if result is not None else 0
 
     @staticmethod
     async def count_by_action(action: str) -> int:

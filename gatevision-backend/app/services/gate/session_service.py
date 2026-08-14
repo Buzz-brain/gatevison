@@ -61,6 +61,83 @@ class SessionService:
         session.last_exit_time = datetime.utcnow()
         return await self._repo.update(session)
 
+    async def open_session(
+        self,
+        vehicle_id: str,
+        plate_text: Optional[str] = None,
+        vehicle_embedding: Optional[list[float]] = None,
+        face_embedding: Optional[list[float]] = None,
+        confidence: Optional[dict] = None,
+        decision_mode: Optional[str] = None,
+    ) -> GateSession:
+        """Create (or reuse) a session and transition it to INSIDE, attaching
+        the capture signals recorded at entry for later exit matching.
+        """
+        session = await self._repo.get_active_by_vehicle_id(vehicle_id)
+        if session and session.current_state == "INSIDE":
+            raise SessionError(
+                f"Vehicle '{vehicle_id}' is already INSIDE. "
+                f"Duplicate entry rejected."
+            )
+        if session is None:
+            import uuid
+            session = GateSession(
+                session_id=str(uuid.uuid4()),
+                vehicle_id=vehicle_id,
+                current_state="OUTSIDE",
+            )
+            await self._repo.create(session)
+
+        session.plate_text = plate_text or vehicle_id
+        if vehicle_embedding is not None:
+            session.vehicle_embedding = vehicle_embedding
+        if face_embedding is not None:
+            session.face_embedding = face_embedding
+        if confidence is not None:
+            session.entry_confidence = confidence
+        if decision_mode is not None:
+            session.decision_mode = decision_mode
+        session.current_state = "INSIDE"
+        session.last_entry_time = datetime.utcnow()
+        return await self._repo.update(session)
+
+    async def force_close(self, vehicle_id: str) -> GateSession:
+        session = await self._repo.get_active_by_vehicle_id(vehicle_id)
+        if not session:
+            raise SessionError(f"No active session for vehicle '{vehicle_id}'")
+        if session.current_state != "INSIDE":
+            raise SessionError(
+                f"Vehicle '{vehicle_id}' is not INSIDE "
+                f"(current state: {session.current_state})"
+            )
+        session.current_state = "OUTSIDE"
+        session.last_exit_time = datetime.utcnow()
+        return await self._repo.update(session)
+
+    async def close_session_by_id(self, session_id: str) -> GateSession:
+        session = await self._repo.get_by_session_id(session_id)
+        if not session:
+            raise SessionError(f"No active session '{session_id}'")
+        if session.current_state != "INSIDE":
+            raise SessionError(
+                f"Session '{session_id}' is not INSIDE "
+                f"(current state: {session.current_state})"
+            )
+        session.current_state = "OUTSIDE"
+        session.last_exit_time = datetime.utcnow()
+        return await self._repo.update(session)
+
+    async def attach_exit_confidence(
+        self, session_id: str, confidence: Optional[dict],
+    ) -> Optional[GateSession]:
+        if confidence is None:
+            return None
+        session = await self._repo.get_by_session_id(session_id)
+        if session is None:
+            return None
+        session.exit_confidence = confidence
+        return await self._repo.update(session)
+
     async def get_vehicles_inside(self) -> list[GateSession]:
         return await self._repo.get_vehicles_inside()
 

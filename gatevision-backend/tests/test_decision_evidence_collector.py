@@ -84,6 +84,20 @@ def test_collect_ocr_confidence(collector):
     assert ocr.matched is True
 
 
+def test_collect_ocr_valid_status_counts_as_matched(collector):
+    result = PipelineResult(
+        success=True,
+        request_id="test",
+        total_processing_time=0.0,
+        recognized_plates=[
+            {"plate": "KJA987FT", "confidence": 0.77, "validation_status": "valid"}
+        ],
+    )
+    evidence = collector.collect(result)
+    ocr = next(e for e in evidence if e.module_name == "ocr")
+    assert ocr.matched is True
+
+
 def test_collect_ocr_no_recognitions(collector):
     result = PipelineResult(
         success=True, request_id="test", total_processing_time=0.0,

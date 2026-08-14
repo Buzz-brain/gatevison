@@ -13,7 +13,9 @@ from app.middleware.exception_handlers import (
     validation_exception_handler,
 )
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.request_logging import RequestLoggingMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.services.ai.warmup import warm_up_models
 from app.utils.logger import setup_logging
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -23,6 +25,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 async def lifespan(app: FastAPI):
     setup_logging()
     await init_database()
+    warm_up_models()
     yield
     await close_database()
 
@@ -44,6 +47,7 @@ app.add_middleware(
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
 
 app.add_exception_handler(Exception, global_exception_handler)

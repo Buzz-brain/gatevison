@@ -43,7 +43,7 @@ async def test_pipeline_with_vehicle_fingerprint(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.95,
                     "cropped_plate_path": "/tmp/plate.jpg",
                 }
@@ -52,7 +52,7 @@ async def test_pipeline_with_vehicle_fingerprint(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     services = PipelineServices(
         detection_service=mock_det_svc,
@@ -84,7 +84,7 @@ async def test_pipeline_without_vehicle_fingerprint(sample_frame):
         return_value={
             "detections": [
                 {
-                    "bbox": [50, 50, 100, 100, 100, 50, 50, 50],
+                    "bbox": [25, 40, 75, 40, 75, 60, 25, 60],
                     "confidence": 0.95,
                     "cropped_plate_path": "",
                 }
@@ -93,7 +93,7 @@ async def test_pipeline_without_vehicle_fingerprint(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     services = PipelineServices(
         detection_service=mock_det_svc,
@@ -129,7 +129,7 @@ async def test_pipeline_vehicle_fingerprint_error_handling(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     services = PipelineServices(
         detection_service=mock_det_svc,
@@ -153,6 +153,44 @@ async def test_pipeline_vehicle_fingerprint_error_handling(sample_frame):
 
 
 @pytest.mark.asyncio
+async def test_pipeline_vehicle_model_unavailable_skips_stage(sample_frame):
+    mock_vehicle_svc = MagicMock()
+    mock_vehicle_svc.is_available = MagicMock(return_value=False)
+    mock_vehicle_svc.extract_fingerprint = AsyncMock()
+
+    mock_det_svc = MagicMock()
+    mock_det_svc.detect_from_frame = AsyncMock(return_value={"detections": []})
+
+    mock_ocr_svc = MagicMock()
+    mock_ocr_svc.read_many = AsyncMock()
+
+    services = PipelineServices(
+        detection_service=mock_det_svc,
+        ocr_service=mock_ocr_svc,
+        face_recognition_service=None,
+        vehicle_fingerprint_service=mock_vehicle_svc,
+    )
+
+    orchestrator = PipelineOrchestrator(services=services)
+
+    from app.services.ai.orchestrator.pipeline_context import PipelineContext
+
+    ctx = PipelineContext()
+    ctx.frame = sample_frame
+
+    result = await orchestrator.execute(ctx)
+
+    assert result.success is True
+    assert result.vehicle_detections[0]["detected"] is False
+    assert result.vehicle_detections[0]["embedding_count"] == 0
+    assert result.vehicle_fingerprints == []
+    mock_vehicle_svc.extract_fingerprint.assert_not_called()
+    assert any(
+        "vehicle_fingerprint" in w["stage"] for w in result.warnings
+    )
+
+
+@pytest.mark.asyncio
 async def test_pipeline_builds_vehicle_detections(sample_frame):
     mock_det_svc = MagicMock()
     mock_det_svc.detect_from_frame = AsyncMock(
@@ -160,7 +198,7 @@ async def test_pipeline_builds_vehicle_detections(sample_frame):
     )
 
     mock_ocr_svc = MagicMock()
-    mock_ocr_svc.read_from_image = AsyncMock()
+    mock_ocr_svc.read_many = AsyncMock()
 
     mock_vehicle_svc = MagicMock()
     mock_vehicle_svc.extract_fingerprint = AsyncMock(

@@ -72,6 +72,19 @@ class GateSessionRepository:
         return await GateSession.find_all().count()
 
     @staticmethod
+    async def delete_by_id(session_id: str) -> bool:
+        session = await GateSession.get(session_id)
+        if session is None:
+            return False
+        await session.delete()
+        return True
+
+    @staticmethod
+    async def delete_all() -> int:
+        result = await GateSession.find_all().delete()
+        return result.deleted_count if result is not None else 0
+
+    @staticmethod
     async def count_inside() -> int:
         return await GateSession.find(
             GateSession.current_state == "INSIDE",

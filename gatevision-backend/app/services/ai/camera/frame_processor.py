@@ -10,8 +10,15 @@ logger = logging.getLogger(__name__)
 class FrameProcessor:
     @staticmethod
     def read_bytes(image_bytes: bytes) -> Optional[np.ndarray]:
+        if not image_bytes:
+            logger.warning("Empty image bytes provided")
+            return None
         array = np.frombuffer(image_bytes, dtype=np.uint8)
-        frame = cv2.imdecode(array, cv2.IMREAD_COLOR)
+        try:
+            frame = cv2.imdecode(array, cv2.IMREAD_COLOR)
+        except cv2.error:
+            logger.warning("Failed to decode image bytes")
+            return None
         if frame is None:
             logger.warning("Failed to decode image bytes")
         return frame

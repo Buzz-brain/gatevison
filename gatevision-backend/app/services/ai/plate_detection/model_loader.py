@@ -80,6 +80,26 @@ class ModelLoader:
                     f"Model loaded: device={resolved_device}, "
                     f"version={self._model_version}"
                 )
+                try:
+                    class_names = self._model.names
+                    if class_names:
+                        logger.info(
+                            "YOLO model classes: %s | event=model_classes",
+                            class_names,
+                        )
+                    plate_classes = [
+                        str(n).strip().lower()
+                        for n in class_names.values()
+                        if "plate" in str(n).strip().lower()
+                        or "licence" in str(n).strip().lower()
+                        or "license" in str(n).strip().lower()
+                    ]
+                    logger.info(
+                        "YOLO plate classes: %s | event=model_plate_classes",
+                        plate_classes or "NONE - not a plate detector",
+                    )
+                except Exception as e:
+                    logger.debug("Could not read model class names: %s", e)
                 return self._model
             except ModelLoadError:
                 raise

@@ -13,8 +13,8 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "success": False,
-            "message": "Internal server error",
-            "errors": [str(exc)],
+            "message": "Something went wrong. Please try again.",
+            "errors": [],
         },
     )
 

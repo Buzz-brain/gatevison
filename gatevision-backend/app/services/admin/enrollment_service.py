@@ -53,7 +53,11 @@ class EnrollmentService:
             face_result = await self._face_svc.recognize_from_image(image)
             if not face_result.get("face_detected", False):
                 raise EnrollmentError("No face detected in image")
-            embeddings = face_result.get("embeddings", [])
+            embeddings = [
+                d.get("embedding")
+                for d in face_result.get("detections", [])
+                if d.get("embedding")
+            ]
             if not embeddings:
                 raise EnrollmentError("Failed to extract face embedding")
             embedding = embeddings[0]

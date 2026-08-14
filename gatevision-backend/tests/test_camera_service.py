@@ -177,3 +177,47 @@ def test_get_last_frame(mock_vc):
     assert service.get_last_frame() is None
     service.capture()
     assert service.get_last_frame() is not None
+
+
+@patch("cv2.VideoCapture")
+def test_capture_throttles_repeated_reads(mock_vc):
+    mock_vc.return_value = _make_mock_cap()
+    service = CameraService()
+    service.start()
+    service.capture()
+    service.capture()
+    # Second capture inside the throttle window must not read the device again.
+    assert mock_vc.return_value.read.call_count == 1
+    assert service.status()["frame_count"] == 2
+
+
+@patch("cv2.VideoCapture")
+def test_duplicate_processing_detection(mock_vc):
+    mock_vc.return_value = _make_mock_cap()
+    service = CameraService()
+    service.start()
+    frame = service.capture()
+    # Nothing processed yet -> never a duplicate.
+    assert service.is_duplicate_of_processed(frame) is False
+    service.note_processed(frame)
+    # Same frame after processing -> duplicate.
+    assert service.is_duplicate_of_processed(frame) is True
+    # A different frame is not a duplicate.
+    other = frame + 5
+    assert service.is_duplicate_of_processed(other) is False
+
+
+@patch("cv2.VideoCapture")
+def test_duplicate_detection_disabled(mock_vc):
+    mock_vc.return_value = _make_mock_cap()
+    from unittest.mock import patch as _patch
+
+    with _patch(
+        "app.services.ai.camera.camera_service.settings.CAMERA_AVOID_DUPLICATE_PROCESSING",
+        False,
+    ):
+        service = CameraService()
+        service.start()
+        frame = service.capture()
+        service.note_processed(frame)
+        assert service.is_duplicate_of_processed(frame) is False

@@ -53,7 +53,7 @@ class MonitoringRepository(BaseRepository[SystemHealth, SystemHealthCreate, Any]
         return await self.model.find(query).sort(-self.model.checked_at).to_list()
 
     async def get_db_stats(self) -> dict:
-        db = self.model.get_motor_collection().database
+        db = self.model.get_pymongo_collection().database
         stats = await db.command("dbStats")
         collections_list = await db.list_collection_names()
         collection_counts = {}

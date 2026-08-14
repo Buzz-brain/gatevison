@@ -1,11 +1,20 @@
+import logging
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
 
 import numpy as np
 
-from app.services.ai.camera.camera_service import CameraError
+logger = logging.getLogger(__name__)
+
+from app.config.settings import settings
+from app.models.decision_record import DecisionRecord
+from app.repositories.decision_repository import DecisionRepository
+from app.repositories.driver_profile_repository import DriverProfileRepository
+from app.services.ai.camera.camera_service import CameraError, CameraService
 from app.services.ai.camera.frame_processor import FrameProcessor
+from app.services.ai.embedding.similarity_engine import SimilarityEngine
 from app.services.ai.face_recognition.recognition_service import (
     FaceRecognitionService,
 )
@@ -22,7 +31,7 @@ from app.services.gate.workflow_service import WorkflowService
 from app.services.ai.orchestrator.execution_logger import PipelineLogger
 from app.services.ai.orchestrator.metrics import get_pipeline_metrics
 from app.services.ai.orchestrator.pipeline_context import PipelineContext
-from app.services.ai.orchestrator.pipeline_result import PipelineResult, StageResult
+from app.services.ai.orchestrator.pipeline_result import PipelineResult
 from app.services.ai.orchestrator.workflow import WorkflowEngine
 from app.services.ai.plate_detection.detection_service import DetectionService
 
@@ -45,10 +54,45 @@ class PipelineServices:
         return cls(
             detection_service=DetectionService(),
             ocr_service=OcrService(),
-            face_recognition_service=None,
-            vehicle_fingerprint_service=None,
-            decision_engine=None,
+            face_recognition_service=FaceRecognitionService(),
+            vehicle_fingerprint_service=VehicleFingerprintService(),
+            decision_engine=DecisionEngine(),
+            gate_workflow_service=WorkflowService(),
         )
+
+
+def _log_pipeline_services(services: PipelineServices) -> None:
+    def face_state() -> str:
+        if services.face_recognition_service is None:
+            return "disabled"
+        return (
+            "enabled(model_ready)"
+            if services.face_recognition_service.is_available()
+            else "enabled(model_not_downloaded)"
+        )
+
+    def vehicle_state() -> str:
+        if services.vehicle_fingerprint_service is None:
+            return "disabled"
+        return (
+            "enabled(model_ready)"
+            if services.vehicle_fingerprint_service.is_available()
+            else "enabled(model_not_downloaded)"
+        )
+
+    logger.info(
+        "Pipeline AI services configured | event=pipeline_services "
+        "| detection=%s | ocr=%s | face=%s | vehicle=%s "
+        "| decision=%s | gate_workflow=%s",
+        type(services.detection_service).__name__,
+        type(services.ocr_service).__name__,
+        face_state(),
+        vehicle_state(),
+        type(services.decision_engine).__name__
+        if services.decision_engine else "disabled",
+        type(services.gate_workflow_service).__name__
+        if services.gate_workflow_service else "disabled",
+    )
 
 
 class PipelineOrchestrator:
@@ -60,6 +104,7 @@ class PipelineOrchestrator:
         self.logger = PipelineLogger()
         self.metrics = get_pipeline_metrics()
         self._workflow = WorkflowEngine(self._build_stages())
+        _log_pipeline_services(self.services)
 
     def _build_stages(self) -> list:
         stages = [
@@ -73,15 +118,28 @@ class PipelineOrchestrator:
         if self.services.vehicle_fingerprint_service is not None:
             stages.append(self._process_vehicle_fingerprint)
         stages.append(self._evaluate_decision)
+        stages.append(self._persist_decision)
         if self.services.decision_engine is not None and self.services.gate_workflow_service is not None:
             stages.append(self._process_gate_workflow)
         stages.append(self._aggregate_results)
         return stages
 
     async def execute_from_upload(
-        self, data: bytes, camera_id: Optional[str] = None,
+        self,
+        data: bytes,
+        camera_id: Optional[str] = None,
+        direction: str = "entry",
+        request_id: Optional[str] = None,
+        require_face: Optional[bool] = None,
+        face_data: Optional[bytes] = None,
     ) -> PipelineResult:
-        context = PipelineContext(camera_id=camera_id)
+        context = PipelineContext(
+            camera_id=camera_id,
+            direction=direction,
+            require_face=require_face,
+        )
+        if request_id:
+            context.request_id = request_id
         context.add_timestamp("pipeline_start")
 
         frame = FrameProcessor.read_bytes(data)
@@ -94,20 +152,50 @@ class PipelineOrchestrator:
             "channels": frame.shape[2] if frame.ndim == 3 else 1,
         }
 
+        if face_data is not None:
+            face_frame = FrameProcessor.read_bytes(face_data)
+            if face_frame is None:
+                raise ContextValidationError("Failed to decode uploaded face image")
+            context.face_frame = face_frame
+            context.face_frame_metadata = {
+                "height": face_frame.shape[0],
+                "width": face_frame.shape[1],
+                "channels": face_frame.shape[2] if face_frame.ndim == 3 else 1,
+            }
+
         return await self._execute(context)
 
     async def execute_from_camera(
-        self, camera_id: str = "default",
+        self, camera_id: str = "default", direction: str = "entry",
+        request_id: Optional[str] = None,
+        require_face: Optional[bool] = None,
     ) -> PipelineResult:
-        context = PipelineContext(camera_id=camera_id)
+        context = PipelineContext(
+            camera_id=camera_id,
+            direction=direction,
+            require_face=require_face,
+        )
+        if request_id:
+            context.request_id = request_id
         context.add_timestamp("pipeline_start")
 
+        camera_svc = self.services.detection_service.camera_service
         try:
-            frame = self.services.detection_service.camera_service.capture()
+            frame = camera_svc.capture()
         except CameraError as e:
             raise ContextValidationError(str(e)) from e
         if frame is None:
             raise ContextValidationError("Camera returned no frame")
+
+        if isinstance(camera_svc, CameraService):
+            if (
+                settings.CAMERA_AVOID_DUPLICATE_PROCESSING
+                and camera_svc.is_duplicate_of_processed(frame)
+            ):
+                raise ContextValidationError(
+                    "Duplicate frame - no new vehicle activity detected"
+                )
+
         context.frame = frame
         context.frame_metadata = {
             "height": frame.shape[0],
@@ -115,7 +203,10 @@ class PipelineOrchestrator:
             "channels": frame.shape[2] if frame.ndim == 3 else 1,
         }
 
-        return await self._execute(context)
+        result = await self._execute(context)
+        if isinstance(camera_svc, CameraService):
+            camera_svc.note_processed(frame)
+        return result
 
     async def execute(
         self, context: PipelineContext,
@@ -128,11 +219,16 @@ class PipelineOrchestrator:
         self.logger.pipeline_started(request_id, stage_names)
 
         start_total = time.perf_counter()
+        start_iso = datetime.now(timezone.utc).isoformat()
 
         try:
             stage_results = await self._workflow.execute(context)
         except Exception as e:
             self.logger.pipeline_completed(request_id, False, 0.0)
+            self._log_summary(
+                request_id, start_iso, 0.0, {}, None,
+                errors=[str(e)],
+            )
             raise PipelineExecutionError(f"Unexpected pipeline error: {e}") from e
 
         success = all(r.success for r in stage_results) if stage_results else False
@@ -175,7 +271,49 @@ class PipelineOrchestrator:
         )
         self.logger.pipeline_completed(request_id, success, total_time)
 
+        self._log_summary(
+            request_id,
+            start_iso,
+            total_time,
+            context.processing_times,
+            decision,
+            errors=context.errors,
+            recognized_plates=recognized,
+        )
+
         return result
+
+    def _log_summary(
+        self,
+        request_id: str,
+        start_iso: str,
+        total_ms: float,
+        stage_times: dict,
+        decision: Optional[dict],
+        errors: Optional[list] = None,
+        recognized_plates: Optional[list] = None,
+    ) -> None:
+        end_iso = datetime.now(timezone.utc).isoformat()
+        stage_summary = {k: round(v, 2) for k, v in (stage_times or {}).items()}
+        logger.info(
+            "Pipeline summary: total=%.2fms stages=%s decision=%s recognized=%d errors=%d",
+            total_ms,
+            stage_summary,
+            (decision or {}).get("decision", "NONE"),
+            len(recognized_plates or []),
+            len(errors or []),
+            extra={
+                "request_id": request_id,
+                "event": "pipeline_summary",
+                "start_time": start_iso,
+                "end_time": end_iso,
+                "total_duration_ms": round(total_ms, 2),
+                "stage_times_ms": stage_summary,
+                "decision": (decision or {}).get("decision", "NONE"),
+                "recognized_plate_count": len(recognized_plates or []),
+                "error_count": len(errors or []),
+            },
+        )
 
     async def _capture_frame(self, context: PipelineContext) -> None:
         if context.frame is not None:
@@ -207,87 +345,278 @@ class PipelineOrchestrator:
             frame=context.frame,
             image_id=context.uploaded_image_id or "pipeline",
         )
-        context.detections = result.get("detections", [])
+        detections = []
+        for d in result.get("detections", []):
+            if hasattr(d, "model_dump"):
+                detections.append(d.model_dump())
+            elif isinstance(d, dict):
+                detections.append(d)
+        context.detections = detections
 
     async def _crop_plates(self, context: PipelineContext) -> None:
         if context.frame is None:
             return
 
+        frame_h, frame_w = context.frame.shape[:2]
+        frame_area = frame_h * frame_w
+        min_aspect = settings.PLATE_MIN_ASPECT_RATIO
+        max_aspect = settings.PLATE_MAX_ASPECT_RATIO
+        max_area_fraction = settings.OCR_MAX_CROP_AREA_FRACTION
         cropped = []
-        for det in context.detections:
+        for idx, det in enumerate(context.detections):
             bbox = det.get("bbox")
-            if bbox and len(bbox) == 8:
+            if not bbox:
+                continue
+            if len(bbox) == 4:
+                x1, y1, x2, y2 = bbox
+            elif len(bbox) == 8:
                 x_coords = [bbox[i] for i in range(0, 8, 2)]
                 y_coords = [bbox[i] for i in range(1, 8, 2)]
-                x1, y1 = max(0, min(x_coords)), max(0, min(y_coords))
-                x2, y2 = min(context.frame.shape[1], max(x_coords)), min(
-                    context.frame.shape[0], max(y_coords)
+                x1, y1 = min(x_coords), min(y_coords)
+                x2, y2 = max(x_coords), max(y_coords)
+            else:
+                continue
+            x1 = max(0, int(x1))
+            y1 = max(0, int(y1))
+            x2 = min(frame_w, int(x2))
+            y2 = min(frame_h, int(y2))
+            if x2 <= x1 or y2 <= y1:
+                continue
+            w = x2 - x1
+            h = y2 - y1
+            aspect = w / h
+            area_fraction = (w * h) / frame_area if frame_area else 0
+            reason = None
+            if min_aspect and aspect < min_aspect:
+                reason = (
+                    f"crop aspect {aspect:.2f} < PLATE_MIN_ASPECT_RATIO "
+                    f"({min_aspect:.2f})"
                 )
-                if x2 > x1 and y2 > y1:
-                    crop = context.frame[y1:y2, x1:x2].copy()
-                    cropped.append({
-                        "image": crop,
-                        "bbox": bbox,
-                        "confidence": det.get("confidence", 0.0),
-                        "cropped_plate_path": det.get("cropped_plate_path", ""),
-                    })
+            elif max_aspect and aspect > max_aspect:
+                reason = (
+                    f"crop aspect {aspect:.2f} > PLATE_MAX_ASPECT_RATIO "
+                    f"({max_aspect:.2f})"
+                )
+            elif max_area_fraction and area_fraction > max_area_fraction:
+                reason = (
+                    f"crop area {w * h} is {area_fraction:.2f}x frame area, "
+                    f"> OCR_MAX_CROP_AREA_FRACTION ({max_area_fraction:.2f})"
+                )
+            if reason is not None:
+                logger.info(
+                    "Plate crop skipped: %s request_id=%s | event=plate_crop_skipped "
+                    "| detection_index=%s | bbox=%s | reason=%s",
+                    context.request_id, context.request_id,
+                    idx, bbox, reason,
+                )
+                continue
+            crop = context.frame[y1:y2, x1:x2].copy()
+            cropped.append({
+                "image": crop,
+                "bbox": bbox,
+                "confidence": det.get("confidence", 0.0),
+                "cropped_plate_path": det.get("cropped_plate_path", ""),
+                "original_index": idx,
+            })
         context.cropped_plates = cropped
 
     async def _recognize_plates(self, context: PipelineContext) -> None:
-        for i, crop in enumerate(context.cropped_plates):
-            plate_image = crop["image"]
-            if plate_image.size == 0:
-                context.ocr_results.append({
-                    "plate_index": i,
-                    "raw_text": "",
-                    "cleaned_text": "",
-                    "confidence": 0.0,
-                    "validation_status": "error",
-                    "validation_message": "Empty cropped image",
-                })
-                continue
+        crops = context.cropped_plates
+        if not crops:
+            return
 
-            try:
-                ocr_response = await self.services.ocr_service.read_from_image(
-                    image=plate_image,
+        frame_area = 0
+        if context.frame is not None:
+            frame_area = context.frame.shape[0] * context.frame.shape[1]
+
+        # Drop implausible detections first: low confidence and oversized boxes.
+        min_conf = settings.OCR_MIN_CROP_CONFIDENCE
+        max_area_fraction = settings.OCR_MAX_CROP_AREA_FRACTION
+        filtered = []
+        for crop in crops:
+            reason = None
+            conf = crop.get("confidence", 0.0)
+            if min_conf and conf < min_conf:
+                reason = (
+                    f"confidence {conf:.3f} < OCR_MIN_CROP_CONFIDENCE "
+                    f"({min_conf:.2f})"
                 )
-                context.ocr_results.append({
-                    "plate_index": i,
-                    "raw_text": ocr_response.raw_text,
-                    "cleaned_text": ocr_response.cleaned_text,
-                    "confidence": ocr_response.confidence,
-                    "validation_status": ocr_response.validation_status,
-                    "validation_message": ocr_response.validation_message,
-                })
-            except Exception as e:
-                context.ocr_results.append({
-                    "plate_index": i,
-                    "raw_text": "",
-                    "cleaned_text": "",
-                    "confidence": 0.0,
-                    "validation_status": "error",
-                    "validation_message": str(e),
-                })
+            if reason is None and frame_area and max_area_fraction:
+                bbox = crop.get("bbox")
+                if bbox:
+                    xs = [bbox[i] for i in range(0, len(bbox) - 1, 2)]
+                    ys = [bbox[i] for i in range(1, len(bbox), 2)]
+                    if xs and ys:
+                        w = max(xs) - min(xs)
+                        h = max(ys) - min(ys)
+                        frac = (w * h) / frame_area
+                        if frac > max_area_fraction:
+                            reason = (
+                                f"crop area {w * h} is {frac:.2f}x frame area, "
+                                f"> OCR_MAX_CROP_AREA_FRACTION ({max_area_fraction:.2f})"
+                            )
+            if reason is not None:
+                logger.info(
+                    "OCR crop skipped: %s request_id=%s | event=ocr_crop_skipped "
+                    "| crop_index=%s | bbox=%s | reason=%s",
+                    context.request_id, context.request_id,
+                    crop.get("original_index", -1), crop.get("bbox"), reason,
+                )
+                continue
+            filtered.append(crop)
+        crops = filtered
+        if not crops:
+            return
+
+        # Process only the highest-confidence crops to keep CPU OCR fast.
+        max_crops = settings.OCR_MAX_CROPS
+        if max_crops and len(crops) > max_crops:
+            ranked = sorted(
+                crops,
+                key=lambda c: c.get("confidence", 0.0),
+                reverse=True,
+            )
+            kept = set(id(c) for c in ranked[:max_crops])
+            crops = [c for c in crops if id(c) in kept]
+
+        images = [crop["image"] for crop in crops]
+        try:
+            responses = await self.services.ocr_service.read_many(images)
+            for i, resp in enumerate(responses):
+                resp["plate_index"] = crops[i].get("original_index", i)
+                crop = crops[i]
+                img = crop.get("image")
+                logger.info(
+                    "OCR result: %s request_id=%s | event=ocr_crop_result "
+                    "| crop_index=%s | crop_size=%sx%s | detector_conf=%.3f "
+                    "| text=%r | ocr_conf=%.3f | validation=%s",
+                    context.request_id, context.request_id,
+                    resp["plate_index"],
+                    img.shape[1] if img is not None else "?",
+                    img.shape[0] if img is not None else "?",
+                    crop.get("confidence", 0.0),
+                    resp.get("raw_text") or resp.get("cleaned_text"),
+                    resp.get("confidence", 0.0),
+                    resp.get("validation_status", "n/a"),
+                )
+            context.ocr_results = responses
+        except Exception as e:
+            logger.warning(
+                "OCR batch failed: %s request_id=%s | event=ocr_batch_failed "
+                "| crops=%s | error=%r",
+                context.request_id, context.request_id, len(images), e,
+            )
+            context.add_warning("recognize_plates", str(e))
 
     async def _recognize_faces(self, context: PipelineContext) -> None:
-        if context.frame is None:
+        frame = context.face_frame if context.face_frame is not None else context.frame
+        if frame is None:
             return
 
         svc = self.services.face_recognition_service
         if svc is None:
             return
 
+        if not svc.is_available():
+            message = (
+                f"InsightFace model '{settings.FACE_MODEL_NAME}' not downloaded; "
+                "face stage unavailable"
+            )
+            logger.warning(
+                "%s request_id=%s | event=face_model_unavailable | detail=%s",
+                context.request_id, context.request_id, message,
+            )
+            context.add_warning("face_recognition", message)
+            return
+
         try:
-            result = await svc.recognize_from_image(context.frame)
-            context.face_detections = result.get("detections", [])
+            result = await svc.recognize_from_image(frame)
+            dets = result.get("detections", [])
+            context.face_detections = dets
+            context.face_embeddings = [
+                d.get("embedding", [])
+                for d in dets
+                if d.get("embedding")
+            ]
+
+            match = await self._match_face_to_gallery(context)
             context.face_recognition_results = [{
                 "face_detected": result.get("face_detected", False),
                 "face_count": result.get("face_count", 0),
-                "similarity_score": result.get("similarity_score"),
-                "matched": result.get("matched", False),
+                "similarity_score": match["similarity_score"],
+                "matched": match["matched"],
+                "matched_driver_id": match["matched_driver_id"],
+                "matched_driver_name": match["matched_driver_name"],
+                "embedding_distance": match["embedding_distance"],
+                "detections": dets,
             }]
         except Exception as e:
             context.add_warning("face_recognition", str(e))
+
+    async def _match_face_to_gallery(self, context: PipelineContext) -> dict:
+        """Compare captured face embeddings against enrolled active drivers.
+
+        Returns the best match above the configured similarity threshold, or
+        an empty match when the gallery is unavailable (Mongo down) or empty.
+        """
+        no_match = {
+            "similarity_score": None,
+            "matched": False,
+            "matched_driver_id": None,
+            "matched_driver_name": None,
+            "embedding_distance": None,
+        }
+        embeddings = context.face_embeddings
+        if not embeddings:
+            return no_match
+
+        similarity = SimilarityEngine(
+            threshold=settings.FACE_SIMILARITY_THRESHOLD
+        )
+
+        try:
+            gallery = [
+                d for d in await DriverProfileRepository.find_active()
+                if d.face_embedding_reference
+            ]
+        except Exception as e:
+            logger.warning(
+                "%s request_id=%s | event=face_gallery_unavailable | detail=%s",
+                context.request_id, context.request_id, e,
+            )
+            context.add_warning(
+                "face_recognition",
+                f"Face gallery unavailable: {e}",
+            )
+            return no_match
+
+        if not gallery:
+            return no_match
+
+        best = dict(no_match)
+        for embedding in embeddings:
+            for driver in gallery:
+                score = similarity.cosine_similarity(
+                    embedding, driver.face_embedding_reference
+                )
+                if best["similarity_score"] is None or score > best["similarity_score"]:
+                    best["similarity_score"] = round(score, 4)
+                    best["matched"] = similarity.is_match(score)
+                    best["matched_driver_id"] = driver.driver_id
+                    best["matched_driver_name"] = driver.full_name
+                    best["embedding_distance"] = round(
+                        1.0 - score, 4
+                    )
+
+        if best["matched"]:
+            logger.info(
+                "%s request_id=%s | event=face_matched | driver=%s | "
+                "similarity=%s | threshold=%s",
+                context.request_id, context.request_id,
+                best["matched_driver_id"], best["similarity_score"],
+                similarity.threshold,
+            )
+        return best
 
     async def _process_vehicle_fingerprint(self, context: PipelineContext) -> None:
         if context.frame is None:
@@ -295,6 +624,18 @@ class PipelineOrchestrator:
 
         svc = self.services.vehicle_fingerprint_service
         if svc is None:
+            return
+
+        if not svc.is_available():
+            message = (
+                f"ResNet50 ImageNet weights not cached; "
+                "vehicle fingerprint stage unavailable"
+            )
+            logger.warning(
+                "%s request_id=%s | event=vehicle_model_unavailable | detail=%s",
+                context.request_id, context.request_id, message,
+            )
+            context.add_warning("vehicle_fingerprint", message)
             return
 
         try:
@@ -336,7 +677,10 @@ class PipelineOrchestrator:
         )
 
         try:
-            output = await engine.evaluate_result(stub_result)
+            output = await engine.evaluate_result(
+                stub_result,
+                require_face=context.require_face,
+            )
             context.decision = output.to_dict()
         except Exception as e:
             context.add_warning("decision_engine", str(e))
@@ -347,6 +691,26 @@ class PipelineOrchestrator:
                 "evidence": [],
                 "error": str(e),
             }
+
+    async def _persist_decision(self, context: PipelineContext) -> None:
+        decision = context.decision
+        if not decision:
+            return
+        try:
+            record = DecisionRecord(
+                request_id=context.request_id or "pipeline",
+                direction=context.direction,
+                overall_confidence=decision.get("overall_confidence", 0.0),
+                decision=decision.get("decision", "MANUAL_REVIEW"),
+                explanation=decision.get("explanation", ""),
+                evidence=decision.get("evidence", []) or [],
+                fusion_breakdown=decision.get("fusion_breakdown", {}) or {},
+                triggered_rules=decision.get("triggered_rules", []) or [],
+                processing_time=decision.get("processing_time", 0.0),
+            )
+            await DecisionRepository.create(record)
+        except Exception as e:
+            context.add_warning("decision_persist", str(e))
 
     async def _process_gate_workflow(self, context: PipelineContext) -> None:
         svc = self.services.gate_workflow_service
@@ -359,7 +723,7 @@ class PipelineOrchestrator:
         if decision_value != "GRANT":
             context.gate_workflow_result = {
                 "success": False,
-                "action": "ENTRY",
+                "action": context.direction.upper(),
                 "message": f"Decision is '{decision_value}', not GRANT",
             }
             return
@@ -367,7 +731,7 @@ class PipelineOrchestrator:
         if not recognized:
             context.gate_workflow_result = {
                 "success": False,
-                "action": "ENTRY",
+                "action": context.direction.upper(),
                 "message": "No plate recognized",
             }
             return
@@ -375,16 +739,46 @@ class PipelineOrchestrator:
         if not plate_text:
             context.gate_workflow_result = {
                 "success": False,
-                "action": "ENTRY",
+                "action": context.direction.upper(),
                 "message": "Empty plate text",
             }
             return
+
+        face_embedding = context.face_embeddings[0] if context.face_embeddings else None
+        vehicle_embedding = (
+            context.vehicle_embeddings[0]
+            if context.vehicle_embeddings else None
+        )
+
         try:
-            result = await svc.run_entry_workflow(
-                vehicle_id=plate_text,
-                decision=decision_value,
-                request_id=context.request_id,
-            )
+            if settings.DECISION_MODE == "session":
+                if context.direction == "exit":
+                    result = await svc.run_session_exit(
+                        plate_text=plate_text,
+                        request_id=context.request_id,
+                        face_embedding=face_embedding,
+                        vehicle_embedding=vehicle_embedding,
+                        decision=decision_value,
+                    )
+                else:
+                    result = await svc.run_session_entry(
+                        plate_text=plate_text,
+                        request_id=context.request_id,
+                        face_embedding=face_embedding,
+                        vehicle_embedding=vehicle_embedding,
+                        decision=decision_value,
+                        verification=(
+                            decision.get("session_verification")
+                            if isinstance(decision.get("session_verification"), dict)
+                            else None
+                        ),
+                    )
+            else:
+                result = await svc.run_entry_workflow(
+                    vehicle_id=plate_text,
+                    decision=decision_value,
+                    request_id=context.request_id,
+                )
             context.gate_workflow_result = {
                 "success": result.success,
                 "action": result.action,
@@ -398,7 +792,7 @@ class PipelineOrchestrator:
         except Exception as e:
             context.gate_workflow_result = {
                 "success": False,
-                "action": "ENTRY",
+                "action": context.direction.upper(),
                 "message": f"Gate workflow error: {e}",
                 "error": str(e),
             }
@@ -453,17 +847,30 @@ class PipelineOrchestrator:
                 "face_count": r.get("face_count", 0),
                 "similarity_score": r.get("similarity_score"),
                 "matched": r.get("matched", False),
+                "matched_driver_id": r.get("matched_driver_id"),
+                "matched_driver_name": r.get("matched_driver_name"),
+                "embedding_distance": r.get("embedding_distance"),
             }
             for r in context.face_recognition_results
         ]
 
     def _build_recognized_plates(self, context: PipelineContext) -> list:
-        return [
+        plates = [
             {
                 "plate": r.get("cleaned_text", r.get("raw_text", "")),
                 "confidence": r.get("confidence", 0.0),
                 "validation_status": r.get("validation_status", "unchecked"),
             }
             for r in context.ocr_results
-            if r.get("raw_text")
+            if r.get("raw_text") or r.get("cleaned_text")
         ]
+        # Present validated plates first so downstream consumers (gate workflow,
+        # decision engine) prefer a real plate over a spurious high-confidence
+        # read (e.g. a school name painted on a bus).
+        plates.sort(
+            key=lambda p: (
+                p.get("validation_status") != "valid",
+                -float(p.get("confidence", 0.0)),
+            )
+        )
+        return plates

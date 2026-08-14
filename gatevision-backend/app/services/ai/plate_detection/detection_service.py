@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -47,7 +48,9 @@ class DetectionService:
         self.detection_logger.detection_started()
 
         start_time = time.perf_counter()
-        detections = self.detector.detect_and_crop(frame, image_id, conf_threshold)
+        detections = await asyncio.to_thread(
+            self.detector.detect_and_crop, frame, image_id, conf_threshold,
+        )
         total_time = (time.perf_counter() - start_time) * 1000
 
         model_meta = ModelLoader().get_metadata()
@@ -55,15 +58,20 @@ class DetectionService:
 
         saved = []
         for det in detections:
-            record = await self.repository.create_from_result(
-                image_id=image_id,
-                confidence=det["confidence"],
-                bbox=det["bbox"],
-                cropped_path=det.get("cropped_plate_path", ""),
-                inference_time_ms=det["inference_time_ms"],
-                model_version=model_version,
-            )
-            saved.append(record)
+            try:
+                record = await self.repository.create_from_result(
+                    image_id=image_id,
+                    confidence=det["confidence"],
+                    bbox=det["bbox"],
+                    cropped_path=det.get("cropped_plate_path", ""),
+                    inference_time_ms=det["inference_time_ms"],
+                    model_version=model_version,
+                )
+                saved.append(record)
+            except Exception as e:
+                logger.warning(
+                    "Failed to persist plate detection (continuing): %s", e
+                )
 
         annotated_bytes = None
         if annotate:
