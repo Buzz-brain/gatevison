@@ -31065,3 +31065,5 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-08-14 22:41:19 - app.middleware.request_logging - INFO - Request completed: OPTIONS /api/v1/auth/me -> 200 (1.14ms) request_id=0f72d893c6a6 | event=request_completed | duration_ms=1.14
 2026-08-14 22:41:19 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=7880a2fb6197 | event=request_start
 2026-08-14 22:41:19 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.57ms) request_id=7880a2fb6197 | event=request_completed | duration_ms=4.57
+2026-08-14 22:42:19 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=ebda8493bd4f | event=request_start
+2026-08-14 22:42:19 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (11.21ms) request_id=ebda8493bd4f | event=request_completed | duration_ms=11.21
