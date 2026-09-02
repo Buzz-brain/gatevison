@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Camera, Upload, ShieldCheck, X, Volume2, VolumeX,
   CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw,
-  ScanLine, LogIn, LogOut, Eye,
+  ScanLine, LogIn, LogOut, Eye, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ import { useUIStore } from "@/store/ui-store";
 import { useForceCloseSession } from "@/features/gate-operations/hooks/use-gate-operations-api";
 import { playGateSound, primeAudio, type GateSound } from "../utils/sounds";
 import { useProcessPipeline } from "../hooks/use-recognition-api";
+import { completePendingVehicleApi } from "@/services/api/pipeline.api";
+import { getPendingVehicleApi, type PendingVehicleInfo } from "@/services/api/pending.api";
 import { recognizeFaceUploadApi } from "@/services/api/face.api";
 import { mapPipelineResult } from "../api/mapper";
 import type { RecognitionResult } from "../types";
@@ -98,7 +100,7 @@ function getCameraErrorMessage(err: unknown): string {
   switch (name) {
     case "NotAllowedError":
     case "PermissionDeniedError":
-      return "Camera permission was denied. Click the camera or lock icon in your browser address bar, allow camera access, then press Enable Camera. Or upload a photo of your face instead.";
+      return "Camera permission denied. Allow camera access in your browser, then press Enable Camera. Or upload a photo of your face instead.";
     case "NotFoundError":
     case "DevicesNotFoundError":
     case "OverconstrainedError":
@@ -212,6 +214,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const [scanKind, setScanKind] = useState<"vehicle" | "face">("vehicle");
   const [facePreviewUrl, setFacePreviewUrl] = useState<string | null>(null);
   const [faceDenied, setFaceDenied] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const facingModeRef = useRef<"user" | "environment">("environment");
 
   useEffect(() => {
     return () => {
@@ -230,6 +234,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const mutedRef = useRef(false);
   const pendingResultRef = useRef<ApiPipelineResult | null>(null);
   const vehicleFileRef = useRef<File | null>(null);
+  const pendingVehicleRef = useRef<PendingVehicleInfo | null>(null);
+  const pendingCheckedRef = useRef(false);
   const cameraStartingRef = useRef(false);
   const cameraRetryRef = useRef(0);
 
@@ -256,6 +262,36 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     }
   }, [muted]);
 
+  const checkPendingVehicle = useCallback(async () => {
+    try {
+      const pending = await getPendingVehicleApi(direction);
+      if (pending) {
+        pendingVehicleRef.current = pending;
+        setPhase("face_scan");
+        setFaceDenied(false);
+        setNarrative(
+          pending.plate_text
+            ? `Vehicle ${pending.plate_text} has already been scanned. Please look at the face camera to complete entry.`
+            : "The vehicle has already been scanned. Please look at the face camera to complete entry.",
+        );
+        speak(
+          pending.plate_text
+            ? `Vehicle ${pending.plate_text} has already been scanned. Please look at the face camera.`
+            : "The vehicle has already been scanned. Please look at the face camera.",
+          mutedRef.current,
+        );
+      }
+    } catch {
+      // No pending vehicle or query failed - proceed with the normal vehicle scan flow.
+    }
+  }, [direction]);
+
+  useEffect(() => {
+    if (pendingCheckedRef.current) return;
+    pendingCheckedRef.current = true;
+    void checkPendingVehicle();
+  }, [checkPendingVehicle]);
+
   const startCamera = useCallback(async () => {
     if (cameraStartingRef.current) return;
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -276,7 +312,10 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     cameraStartingRef.current = true;
     setCameraError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facingModeRef.current } },
+        audio: false,
+      });
       streamRef.current = stream;
       cameraRetryRef.current = 0;
       const video = videoRef.current;
@@ -300,6 +339,17 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       cameraStartingRef.current = false;
     }
   }, []);
+
+  const toggleCamera = useCallback(async () => {
+    const next = facingModeRef.current === "user" ? "environment" : "user";
+    facingModeRef.current = next;
+    setFacingMode(next);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    cameraRetryRef.current = 0;
+    setCameraError(null);
+    await startCamera();
+  }, [startCamera]);
 
   useEffect(() => {
     void startCamera();
@@ -391,13 +441,16 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     setPhase("scanning");
 
     const combinedFile = kind === "face" ? (vehicleFileRef.current ?? file) : file;
-    const promise = mutation.mutateAsync({
-      file: combinedFile,
-      faceFile: kind === "face" ? file : undefined,
-      direction,
-      requireFace: kind === "face" ? requireFace : false,
-      finalize: kind === "face",
-    });
+    const pending = kind === "face" ? pendingVehicleRef.current : null;
+    const promise = pending
+      ? completePendingVehicleApi(pending.id, file)
+      : mutation.mutateAsync({
+          file: combinedFile,
+          faceFile: kind === "face" ? file : undefined,
+          direction,
+          requireFace: kind === "face" ? requireFace : false,
+          finalize: kind === "face",
+        });
     promise.then(handleResult).catch(handleError);
 
     try {
@@ -432,6 +485,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
       setPhase("complete");
       const mapped = mapPipelineResult(api);
+      if (pending) pendingVehicleRef.current = null;
       await runJourneySteps(buildFinaleSteps(api, mapped, direction, requireFace, kind === "face"), 450);
     } catch (err) {
       console.error("Live gate scan aborted:", err);
@@ -558,6 +612,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     pendingResultRef.current = null;
     setRevealDecision(false);
     vehicleFileRef.current = null;
+    pendingVehicleRef.current = null;
+    pendingCheckedRef.current = false;
     setFaceDenied(false);
     setScanKind("vehicle");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -567,7 +623,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     setPhase("welcome");
     setNarrative(WELCOME_TEXT);
     speak("Ready. Please scan the next vehicle.", mutedRef.current);
-  }, [previewUrl, facePreviewUrl]);
+    void checkPendingVehicle();
+  }, [previewUrl, facePreviewUrl, checkPendingVehicle]);
 
   const outcomeColor =
     phase === "complete" && faceDenied
@@ -586,33 +643,41 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       exit={prefersReduced ? undefined : { opacity: 0 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50 px-6 py-3 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border/50 px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 shadow-glow-primary">
-            <ShieldCheck className="h-4 w-4 text-white" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-glow-primary">
+            <ShieldCheck className="h-6 w-6 text-white" />
           </div>
-          <span className="text-sm font-semibold">GateVision Live Gate</span>
-          <Badge variant="info" className="text-[9px] px-1.5 py-0">Driver Facing</Badge>
-          <Badge variant={direction === "entry" ? "success" : "neutral"} className="ml-1">
-            {direction === "entry" ? "ENTRY" : "EXIT"}
-          </Badge>
-          {requireFace && <Badge variant="warning">Face required</Badge>}
+          <div className="flex flex-col">
+            <span className="text-lg font-semibold tracking-tight">GateVision Live Gate</span>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Badge variant="info" className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">Driver Facing</Badge>
+              <Badge variant={direction === "entry" ? "success" : "neutral"} className="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider">
+                {direction === "entry" ? "ENTRY" : "EXIT"}
+              </Badge>
+              {requireFace && (
+                <Badge variant="warning" className="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider">
+                  Face required
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={() => { primeAudio(); setMuted((m) => !m); }} title={muted ? "Unmute voice" : "Mute voice"}>
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
       {/* Main */}
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-8 p-6">
-        {/* Video preview */}
-        <div className="relative w-full max-w-3xl">
-          <div className="relative aspect-video overflow-hidden rounded-2xl border border-border/40 bg-black/70 shadow-2xl">
+      <div className="relative flex flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:overflow-hidden">
+        {/* Video preview (left column on desktop) */}
+        <div className="relative w-full lg:w-1/2">
+          <div className="relative aspect-video max-h-[40vh] w-full overflow-hidden rounded-3xl border-2 border-border/40 bg-black/70 shadow-2xl lg:max-h-[72vh]">
             {facePreviewUrl ? (
               <img src={facePreviewUrl} alt="Uploaded face" className="h-full w-full object-cover" />
             ) : phase === "face_scan" ? (
@@ -623,50 +688,36 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
             {!facePreviewUrl && !streamRef.current && !cameraError && (phase === "face_scan" || !previewUrl) && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting camera...
+              <div className="absolute inset-0 flex items-center justify-center gap-2 text-base text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" /> Starting camera...
               </div>
             )}
             {facePreviewUrl ? (
-              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                 Face photo
               </div>
-            ) : phase === "face_scan" && cameraError && !streamRef.current ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-6 text-center">
-                <span className="text-sm text-muted-foreground">{cameraError}</span>
-                <Button size="sm" variant="outline" onClick={() => { cameraRetryRef.current = 0; void startCamera(); }} className="gap-1.5">
-                  <Camera className="h-3.5 w-3.5" /> Enable Camera
-                </Button>
-              </div>
-            ) : phase === "face_scan" ? (
-              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+            ) : phase === "face_scan" && !cameraError ? (
+              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                 Face camera
               </div>
-            ) : previewUrl ? (
-              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+            ) : previewUrl && !cameraError ? (
+              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                 Uploaded image
               </div>
-            ) : cameraError ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <span className="text-sm text-muted-foreground">{cameraError}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5"
-                  onClick={() => {
-                    cameraRetryRef.current = 0;
-                    void startCamera();
-                  }}
-                >
-                  <Camera className="h-3.5 w-3.5" /> Enable Camera
+            ) : null}
+            {cameraError && !streamRef.current && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 p-8 text-center">
+                <span className="max-w-xl text-lg leading-relaxed text-white/90">{cameraError}</span>
+                <Button size="lg" variant="outline" onClick={() => { cameraRetryRef.current = 0; void startCamera(); }} className="gap-2">
+                  <Camera className="h-5 w-5" /> Enable Camera
                 </Button>
               </div>
-            ) : null}
+            )}
             {/* Face placement guide */}
             {phase === "face_scan" && !facePreviewUrl && !cameraError && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="relative flex h-[72%] w-[40%] items-center justify-center rounded-[50%] border-2 border-dashed border-white/70 bg-primary/10 shadow-[inset_0_0_50px_rgba(59,130,246,0.25)]">
-                  <span className="px-4 text-center text-[10px] font-semibold uppercase tracking-[0.25em] text-white/90">
+                <div className="relative flex h-[78%] w-[46%] items-center justify-center rounded-[50%] border-2 border-dashed border-white/80 bg-primary/10 shadow-[inset_0_0_50px_rgba(59,130,246,0.25)]">
+                  <span className="px-4 text-center text-xs font-bold uppercase tracking-[0.25em] text-white">
                     Position your face here
                   </span>
                 </div>
@@ -682,13 +733,25 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                 />
               </div>
             )}
+            {!facePreviewUrl && !previewUrl && streamRef.current && !cameraError && (
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => void toggleCamera()}
+                title={facingMode === "user" ? "Switch to back camera" : "Switch to front camera"}
+                className="absolute right-3 top-3 z-10 border-white/40 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+              >
+                <RotateCcw className="h-5 w-5" />
+                <span className="sr-only">Switch camera</span>
+              </Button>
+            )}
           </div>
           {/* Scan corner markers */}
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute left-3 top-3 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-primary/70" />
-            <div className="absolute right-3 top-3 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-primary/70" />
-            <div className="absolute bottom-3 left-3 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-primary/70" />
-            <div className="absolute bottom-3 right-3 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-primary/70" />
+            <div className="absolute left-3 top-3 h-8 w-8 rounded-tl-xl border-l-4 border-t-4 border-primary/80" />
+            <div className="absolute right-3 top-3 h-8 w-8 rounded-tr-xl border-r-4 border-t-4 border-primary/80" />
+            <div className="absolute bottom-3 left-3 h-8 w-8 rounded-bl-xl border-b-4 border-l-4 border-primary/80" />
+            <div className="absolute bottom-3 right-3 h-8 w-8 rounded-br-xl border-b-4 border-r-4 border-primary/80" />
           </div>
           {/* Barrier opening */}
           {phase === "complete" && revealDecision && apiResult?.decision?.decision === "granted" && apiResult.gate?.success !== false && (
@@ -706,40 +769,44 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
           )}
         </div>
 
+        {/* Right column (desktop): narration + actions + result */}
+        <div className="flex w-full flex-col items-center justify-center gap-5 lg:w-[42%] lg:gap-6">
         {/* Narration */}
         <motion.div
           key={narrative}
           initial={prefersReduced ? undefined : { y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="max-w-2xl text-center"
+          className="w-full text-center"
         >
           {phase === "complete" && apiResult && revealDecision && (
-            <div className={cn("mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold",
+            <div className={cn("mb-3 inline-flex items-center gap-2 rounded-full border px-5 py-1 text-sm font-semibold",
               outcomeColor === "success" && "border-success/30 bg-success/10 text-success",
               outcomeColor === "danger" && "border-danger/30 bg-danger/10 text-danger",
               outcomeColor === "warning" && "border-warning/30 bg-warning/10 text-warning")}>
-              {outcomeColor === "success" && <><CheckCircle2 className="h-4 w-4" /> ACCESS GRANTED</>}
+              {outcomeColor === "success" && <><CheckCircle2 className="h-5 w-5" /> ACCESS GRANTED</>}
               {outcomeColor === "danger" && (faceDenied
-                ? <><XCircle className="h-4 w-4" /> ACCESS DENIED</>
+                ? <><XCircle className="h-5 w-5" /> ACCESS DENIED</>
                 : apiResult.decision?.decision === "denied"
-                  ? <><XCircle className="h-4 w-4" /> ACCESS DENIED</>
-                  : <><AlertTriangle className="h-4 w-4" /> GATE BLOCKED</>)}
-              {outcomeColor === "warning" && <><AlertTriangle className="h-4 w-4" /> MANUAL REVIEW REQUIRED</>}
+                  ? <><XCircle className="h-5 w-5" /> ACCESS DENIED</>
+                  : <><AlertTriangle className="h-5 w-5" /> GATE BLOCKED</>)}
+              {outcomeColor === "warning" && <><AlertTriangle className="h-5 w-5" /> MANUAL REVIEW REQUIRED</>}
             </div>
           )}
-          <p className="text-2xl font-bold leading-relaxed text-foreground">{narrative}</p>
+          <div className="rounded-2xl border border-border/40 bg-elevated/40 px-5 py-3 shadow-sm">
+            <p className="text-xl font-medium leading-relaxed text-foreground">{narrative}</p>
+          </div>
         </motion.div>
 
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-center gap-3">
           {(phase === "welcome" || phase === "complete") && (
             <>
-              <Button size="lg" onClick={handleCapture} className="gap-2">
-                <Camera className="h-4 w-4" />
+              <Button size="lg" onClick={handleCapture} className="h-12 px-7 text-base gap-2">
+                <Camera className="h-5 w-5" />
                 {phase === "complete" ? "Scan Next Vehicle" : "Scan Vehicle"}
               </Button>
-              <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="gap-2">
-                <Upload className="h-4 w-4" />
+              <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="h-12 px-7 text-base gap-2">
+                <Upload className="h-5 w-5" />
                 Upload Image
               </Button>
             </>
@@ -747,12 +814,12 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
           {phase === "face_scan" && (
             <>
-              <Button size="lg" onClick={handleFaceCapture} className="gap-2">
-                <Camera className="h-4 w-4" />
+              <Button size="lg" onClick={handleFaceCapture} className="h-12 px-7 text-base gap-2">
+                <Camera className="h-5 w-5" />
                 Scan Face
               </Button>
-              <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="gap-2">
-                <Upload className="h-4 w-4" />
+              <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="h-12 px-7 text-base gap-2">
+                <Upload className="h-5 w-5" />
                 Upload a Photo of My Face
               </Button>
               <Button size="sm" variant="ghost" onClick={resetKiosk}>
@@ -762,8 +829,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
           )}
 
           {(phase === "scanning" || phase === "face_validating") && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-3 text-base text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
               {phase === "face_validating" ? "Checking face..." : scanKind === "face" ? "Verifying identity..." : "Analyzing..."}
             </div>
           )}
@@ -783,9 +850,9 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                     handleCapture();
                   }
                 }}
-                className="gap-2"
+                className="h-12 px-7 text-base gap-2"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-5 w-5" />
                 Try Again
               </Button>
               <Button size="sm" variant="ghost" onClick={resetKiosk}>
@@ -816,18 +883,18 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
         {/* Result detail card */}
         {phase === "complete" && result && apiResult && (
-          <div className="grid w-full max-w-3xl gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-border bg-elevated/60 p-4 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Plate</p>
-              <p className="mt-1 font-mono text-lg font-bold">{result.ocr.cleaned || result.ocr.raw || "Unknown"}</p>
-              <p className="text-xs text-muted-foreground">{(result.ocr.confidence * 100).toFixed(0)}% confidence</p>
+          <div className="grid w-full gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Plate</p>
+              <p className="mt-0.5 font-mono text-xl font-bold">{result.ocr.cleaned || result.ocr.raw || "Unknown"}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{(result.ocr.confidence * 100).toFixed(0)}% confidence</p>
             </div>
-            <div className="rounded-xl border border-border bg-elevated/60 p-4 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Face</p>
-              <p className="mt-1 text-lg font-bold">
+            <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Face</p>
+              <p className="mt-0.5 text-xl font-bold">
                 {faceDenied ? "Not verified" : !requireFace ? "Not required" : apiResult.face?.detected ? "Captured" : "Not captured"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {faceDenied
                   ? "Could not capture after retries"
                   : !requireFace
@@ -841,21 +908,22 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                           : "No match data"}
               </p>
             </div>
-            <div className="rounded-xl border border-border bg-elevated/60 p-4 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Recommended</p>
-              <p className="mt-1 text-sm font-semibold">{result.decision.recommendedAction}</p>
-              <p className="text-xs text-muted-foreground">Attempt {Math.max(attempts, 1)}</p>
+            <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Recommended</p>
+              <p className="mt-0.5 text-lg font-bold">{result.decision.recommendedAction}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Attempt {Math.max(attempts, 1)}</p>
             </div>
           </div>
         )}
 
         {errorMessage && phase === "error" && (
-          <p className="max-w-lg text-center text-xs text-muted-foreground">{errorMessage}</p>
+          <p className="max-w-xl text-center text-sm text-muted-foreground">{errorMessage}</p>
         )}
 
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground/50">
-          <Eye className="h-3 w-3" /> Attempt {Math.max(attempts, 1)} · {requireFace ? "Face capture required" : "Face optional"}
-          {direction === "entry" ? <LogIn className="h-3 w-3" /> : <LogOut className="h-3 w-3" />}
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground/60">
+          <Eye className="h-3.5 w-3.5" /> Attempt {Math.max(attempts, 1)} · {requireFace ? "Face capture required" : "Face optional"}
+          {direction === "entry" ? <LogIn className="h-3.5 w-3.5" /> : <LogOut className="h-3.5 w-3.5" />}
+        </div>
         </div>
       </div>
 

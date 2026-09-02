@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { POLL_INTERVALS, QUERY_KEYS } from "@/lib/api/query-client";
 import { useUIStore } from "@/store/ui-store";
 import {
@@ -17,14 +17,11 @@ export function useFaceModelInfo() {
 }
 
 export function useEnrollFace() {
-  const qc = useQueryClient();
   const addNotification = useUIStore((s) => s.addNotification);
 
   return useMutation({
     mutationFn: (params: EnrollFaceParams) => enrollFaceApi(params),
     onSuccess: (data: EnrollFaceResult) => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.IDENTITY.DRIVERS() });
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.IDENTITY.STATS });
       addNotification({
         type: "success",
         category: "recognition",

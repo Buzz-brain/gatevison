@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  ScanLine, Play, RotateCcw, Loader2, X, MonitorPlay, Camera,
+  ScanLine, Play, RotateCcw, Loader2, ArrowDownToLine, ArrowUpFromLine,
 } from "lucide-react";
 import { PageContainer, SectionHeader } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useUIStore } from "@/store/ui-store";
 import { usePipeline, STAGE_ORDER } from "./hooks/use-pipeline";
 import { usePlayback } from "./hooks/use-playback";
-import { useProcessPipeline, useRecognitionHistory, useDeleteHistoryEntry, useClearHistory, useProcessPipelineCamera, useStartCamera, useStopCamera } from "./hooks/use-recognition-api";
+import { useProcessPipeline, useProcessPipelineCamera, useStartCamera, useStopCamera, useCreatePendingVehicle } from "./hooks/use-recognition-api";
 import { LiveGateOverlay } from "./components/live-gate-overlay";
 import { CaptureInput } from "./components/capture-input";
 import { Pipeline } from "./components/pipeline";
@@ -22,14 +22,13 @@ import { OCRPanel } from "./components/ocr-panel";
 import { FacePanel } from "./components/face-panel";
 import { VehiclePanel } from "./components/vehicle-panel";
 import { DecisionPanel } from "./components/decision-panel";
-import { HistoryTable } from "./components/history-table";
 import { PlaybackControls } from "./components/playback-controls";
 import { ProcessingStatus } from "./components/processing-status";
 import { InvestigationTimeline } from "./components/investigation-timeline";
 import { buildTimelineFromApi, mapPipelineResult, formatTimestamp } from "./api/mapper";
 import { getPipelineStatusApi } from "@/services/api/pipeline.api";
 import { getRecognitionResultApi } from "@/services/api/recognition.api";
-import type { RecognitionResult, RecognitionHistoryEntry } from "./types";
+import type { RecognitionResult } from "./types";
 import type { ApiPipelineStatus, ApiPipelineStage } from "./types/api";
 
 function RecognitionCenterPage() {
@@ -37,7 +36,7 @@ function RecognitionCenterPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<RecognitionResult | null>(null);
   const [direction, setDirection] = useState<"entry" | "exit">("entry");
-  const [requireFace, setRequireFace] = useState(false);
+  const [requireFace, setRequireFace] = useState(true);
   const [liveGateOpen, setLiveGateOpen] = useState(false);
   const [captureSource, setCaptureSource] = useState<"upload" | "camera" | null>(null);
   const [playbackMode, setPlaybackMode] = useState(false);
@@ -56,9 +55,7 @@ function RecognitionCenterPage() {
   const cameraProcessMutation = useProcessPipelineCamera();
   const startCameraMutation = useStartCamera();
   const stopCameraMutation = useStopCamera();
-  const { data: historyData } = useRecognitionHistory(1);
-  const deleteHistoryMutation = useDeleteHistoryEntry();
-  const clearHistoryMutation = useClearHistory();
+  const createPendingMutation = useCreatePendingVehicle();
 
   const handleFileSelected = useCallback((file: File | null) => {
     setSelectedFile(file);
@@ -200,18 +197,15 @@ function RecognitionCenterPage() {
     try {
       await startCameraMutation.mutateAsync(0);
       started = true;
-      const apiResult = await cameraProcessMutation.mutateAsync({ direction, requireFace, finalize: true });
-      applyResultStatus(apiResult);
-      const mapped = mapPipelineResult(apiResult);
-      setResult(mapped);
-      setTimelineEvents(buildTimelineFromApi(apiResult.timestamps, mapped.stages));
+      const pending = await createPendingMutation.mutateAsync(direction);
+      const plate = pending.plate_text;
       addNotification({
-        type: apiResult.decision?.decision === "granted" ? "success" : "warning",
+        type: "success",
         category: "recognition",
-        title: "Live capture complete",
-        description: apiResult.ocr?.raw_text
-          ? `Plate read as ${apiResult.ocr.raw_text} from the live feed.`
-          : "Live pipeline finished. No plate text was recognized.",
+        title: "Vehicle scanned - awaiting face",
+        description: plate
+          ? `Plate read as ${plate}. Ask the driver to complete identity on the gate phone.`
+          : "Vehicle scanned. No plate text recognized - ask the driver to complete identity at the gate.",
       });
     } catch (err) {
       applyBackendStatus({
@@ -239,31 +233,7 @@ function RecognitionCenterPage() {
         }
       }
     }
-  }, [isProcessing, direction, requireFace, startCameraMutation, cameraProcessMutation, stopCameraMutation, startPipeline, applyResultStatus, applyBackendStatus, addNotification]);
-
-  const onHistoryReplay = useCallback((entry: RecognitionHistoryEntry) => {
-    const loadFromHistory = async () => {
-      try {
-        const apiResult = await getRecognitionResultApi(entry.pipelineId);
-        const mapped = mapPipelineResult(apiResult);
-        setResult(mapped);
-        setSelectedFile(null);
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-        setTimelineEvents(buildTimelineFromApi(apiResult.timestamps, mapped.stages));
-        applyBackendStatus({
-          pipeline_id: apiResult.id,
-          status: "completed",
-          current_stage: "decision",
-          progress: 100,
-          stages: apiResult.pipeline_stages ?? [],
-        });
-      } catch {
-        // If loading from history fails, silently ignore
-      }
-    };
-    loadFromHistory();
-  }, [previewUrl, applyBackendStatus]);
+  }, [isProcessing, direction, startCameraMutation, createPendingMutation, stopCameraMutation, startPipeline, applyBackendStatus, addNotification]);
 
   const playback = usePlayback({
     stages: result?.stages ?? stages,
@@ -330,92 +300,76 @@ function RecognitionCenterPage() {
 
   const decision = result?.decision ?? null;
 
+  const handleChooseDirection = useCallback((dir: "entry" | "exit") => {
+    setDirection(dir);
+    setLiveGateOpen(true);
+  }, []);
+
   return (
     <PageContainer className="space-y-6 pb-10">
-      <SectionHeader
-        title="Recognition Center"
-        description="Process one vehicle — upload an image to run recognition, then create or verify a gate session"
-        action={
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => setLiveGateOpen(true)} className="gap-1.5">
-              <MonitorPlay className="h-3.5 w-3.5" />
-              Live Gate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={runLiveCapture}
-              disabled={isProcessing || cameraProcessMutation.isPending}
-              className="gap-1.5"
-            >
-              {isProcessing && captureSource === "camera" ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Capturing From Device...
-                </>
-              ) : (
-                <>
-                  <Camera className="h-3.5 w-3.5" />
-                  Live Capture
-                </>
+      {/* Bold Entry / Exit chooser — fills the page and sits well */}
+      <div className="flex min-h-[calc(100vh-260px)] items-center justify-center rounded-2xl border border-border bg-elevated/60 px-6 py-10 shadow-lg">
+        <div className="flex w-full max-w-3xl flex-col items-center gap-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Gate Scan</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Choose the direction to start the live vehicle scan immediately.
+            </p>
+          </div>
+
+          <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
+            <button
+              onClick={() => handleChooseDirection("entry")}
+              disabled={isProcessing}
+              className={cn(
+                "group relative flex min-h-44 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-border bg-surface p-8 text-center transition-all cursor-pointer",
+                "hover:border-success/60 hover:bg-success/5",
+                direction === "entry" && "border-success bg-success/10",
+                isProcessing && "cursor-not-allowed opacity-60",
               )}
-            </Button>
-            {playbackMode && (
-              <Button variant="ghost" size="sm" onClick={exitPlayback} className="gap-1.5">
-                <X className="h-3.5 w-3.5" />
-                Exit Playback
-              </Button>
-            )}
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-0.5">
-              <button
-                onClick={() => setDirection("entry")}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                  direction === "entry" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Entry
-              </button>
-              <button
-                onClick={() => setDirection("exit")}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                  direction === "exit" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Exit
-              </button>
-            </div>
+            >
+              <ArrowDownToLine className="h-14 w-14 text-success transition-transform group-hover:scale-110" />
+              <span className="text-3xl font-extrabold tracking-tight text-foreground">ENTRY</span>
+              <span className="text-xs text-muted-foreground">Vehicle entering the facility</span>
+            </button>
+            <button
+              onClick={() => handleChooseDirection("exit")}
+              disabled={isProcessing}
+              className={cn(
+                "group relative flex min-h-44 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-border bg-surface p-8 text-center transition-all cursor-pointer",
+                "hover:border-info/60 hover:bg-info/5",
+                direction === "exit" && "border-info bg-info/10",
+                isProcessing && "cursor-not-allowed opacity-60",
+              )}
+            >
+              <ArrowUpFromLine className="h-14 w-14 text-info transition-transform group-hover:scale-110" />
+              <span className="text-3xl font-extrabold tracking-tight text-foreground">EXIT</span>
+              <span className="text-xs text-muted-foreground">Vehicle leaving the facility</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center">
             <label
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
+              className="flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-border bg-surface px-8 py-4 shadow-sm transition-colors hover:border-foreground/40"
               title="When enabled, access is denied or sent for review if a clear face is not captured"
             >
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Face required</span>
-              <Switch checked={requireFace} onCheckedChange={setRequireFace} />
+              <span className="text-xl font-bold tracking-tight text-foreground">Face required</span>
+              <Switch
+                checked={requireFace}
+                onCheckedChange={setRequireFace}
+                className="h-12 w-24 [&>span]:h-10 [&>span]:w-10 [&[aria-checked='true']>span]:translate-x-[52px] [&[aria-checked='false']>span]:translate-x-1"
+              />
             </label>
-            <Button
-              size="sm"
-              onClick={runRecognition}
-              disabled={!selectedFile || isProcessing || processMutation.isPending}
-              className="gap-1.5"
-            >
-              {isProcessing || processMutation.isPending ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {captureSource === "camera"
-                    ? "Processing Live Feed..."
-                    : direction === "exit" ? "Matching Active Session..." : "Creating Entry Session..."}
-                </>
-              ) : (
-                <>
-                  <Play className="h-3.5 w-3.5" />
-                  {direction === "exit" ? "Run Exit Verification" : "Run Recognition"}
-                </>
-              )}
-            </Button>
           </div>
-        }
-      />
+
+          {isProcessing && captureSource === "camera" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Scanning from device...
+            </div>
+          )}
+        </div>
+      </div>
 
       {playbackMode && (
         <motion.div
@@ -437,90 +391,28 @@ function RecognitionCenterPage() {
         </motion.div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,400px)_1fr] lg:items-start">
-        {/* Left column: input + process */}
+      {result && (
         <div className="space-y-4">
-          {/* 1. Input */}
-          <Card className="p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <ScanLine className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-medium">Input</h3>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Step 1</span>
-            </div>
-            <CaptureInput
-              imageUrl={previewUrl ?? result?.frameUrl}
-              overlay={result?.boundingBoxes ?? null}
-              activeStage={currentStageKey}
-              metadata={{
-                fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : "N/A",
-                ...(result ? { captureTime: formatTimestamp(result.timestamp) } : {}),
-              }}
-              disabled={isProcessing}
-              readOnly={playbackMode}
-              onFileSelected={handleFileSelected}
-            />
-          </Card>
-
-          {/* 2. Recognition Progress */}
+          {/* Recognition Results */}
           <div>
-            <h3 className="mb-2 text-sm font-medium">
-              Recognition Progress
-              <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">Step 2</span>
-            </h3>
-            <div className="space-y-2">
-              <ProcessingStatus
-                isProcessing={isProcessing}
-                activeStageKey={currentStageKey}
-                activeLabel={STAGE_ORDER[activeStageIndex]}
+            <h3 className="mb-2 text-sm font-medium">Recognition Results</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <CroppedResults
+                results={[result.croppedVehicle, result.croppedPlate, result.croppedFace]}
               />
-              <Pipeline
-                stages={result?.stages ?? stages}
-                activeStageIndex={playbackMode ? playback.playback.currentStageIndex : activeStageIndex}
-              />
+              <OCRPanel ocr={result.ocr} />
+              <FacePanel face={result.face} />
+              <VehiclePanel vehicle={result.vehicle} />
             </div>
           </div>
-        </div>
 
-        {/* Right column: results + decision */}
-        <div className="space-y-4">
-          {result ? (
-            <>
-              {/* 3. Recognition Results */}
-              <div>
-                <h3 className="mb-2 text-sm font-medium">
-                  Recognition Results
-                  <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">Step 3</span>
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <CroppedResults
-                    results={[result.croppedVehicle, result.croppedPlate, result.croppedFace]}
-                  />
-                  <OCRPanel ocr={result.ocr} />
-                  <FacePanel face={result.face} />
-                  <VehiclePanel vehicle={result.vehicle} />
-                </div>
-              </div>
-
-              {/* 4. Decision / Session */}
-              <div>
-                <h3 className="mb-2 text-sm font-medium">
-                  Decision
-                  <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground/60">Step 4</span>
-                </h3>
-                <DecisionPanel decision={decision} mode={direction} gate={result.gate} />
-              </div>
-            </>
-          ) : (
-            <div className="flex min-h-[340px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface/40 p-8 text-center">
-              <ScanLine className="h-9 w-9 text-muted-foreground/40" />
-              <p className="mt-3 text-sm font-medium text-muted-foreground">No recognition results yet</p>
-              <p className="mt-1 max-w-sm text-xs text-muted-foreground/60">
-                Upload a vehicle image and run recognition. Live results, decision and evidence will appear here.
-              </p>
-            </div>
-          )}
+          {/* Decision / Session */}
+          <div>
+            <h3 className="mb-2 text-sm font-medium">Decision</h3>
+            <DecisionPanel decision={decision} mode={direction} gate={result.gate} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Run Analysis — per-run: only after a recognition has completed */}
       {result || playbackMode ? (
@@ -552,56 +444,6 @@ function RecognitionCenterPage() {
           </div>
         </CollapsibleSection>
       ) : null}
-
-      {/* Recognition History — always visible */}
-      <HistoryTable
-        entries={historyData?.entries ?? []}
-        onReplay={onHistoryReplay}
-        onDelete={(entry) => {
-          deleteHistoryMutation.mutate(entry.id, {
-            onSuccess: () => {
-              addNotification({
-                type: "success",
-                category: "recognition",
-                title: "Entry deleted",
-                description: `${entry.plate} removed from recognition history.`,
-              });
-            },
-            onError: (err) => {
-              const message = (err as { message?: string })?.message || "Could not delete the history entry.";
-              addNotification({
-                type: "error",
-                category: "recognition",
-                title: "Delete failed",
-                description: message,
-              });
-            },
-          });
-        }}
-        onClear={() => {
-          clearHistoryMutation.mutate(undefined, {
-            onSuccess: (result) => {
-              addNotification({
-                type: "success",
-                category: "recognition",
-                title: "History cleared",
-                description: `Removed ${result.deleted_records ?? 0} history record(s) from the database.`,
-              });
-            },
-            onError: (err) => {
-              const message = (err as { message?: string })?.message || "Could not clear history.";
-              addNotification({
-                type: "error",
-                category: "recognition",
-                title: "Clear failed",
-                description: message,
-              });
-            },
-          });
-        }}
-        isDeleting={deleteHistoryMutation.isPending}
-        isClearing={clearHistoryMutation.isPending}
-      />
 
       {liveGateOpen && (
         <LiveGateOverlay

@@ -2,26 +2,67 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  --color-background: #0b1220;
-  --color-surface: #131c2e;
-  --color-elevated: #182235;
-  --color-primary: #3b82f6;
-  --color-primary-light: rgba(59, 130, 246, 0.15);
-  --color-success: #22c55e;
-  --color-success-light: rgba(34, 197, 94, 0.15);
-  --color-warning: #f59e0b;
-  --color-warning-light: rgba(245, 158, 11, 0.15);
-  --color-danger: #ef4444;
-  --color-danger-light: rgba(239, 68, 68, 0.15);
-  --color-info: #06b6d4;
-  --color-info-light: rgba(6, 182, 212, 0.15);
-  --color-foreground: #f8fafc;
-  --color-muted-foreground: #94a3b8;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.15);
+/* Raw color tokens — resolved per mode on :root (light) and .dark */
+:root {
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --elevated: #f8fafc;
+  --primary: #2563eb;
+  --primary-light: rgba(37, 99, 235, 0.12);
+  --success: #16a34a;
+  --success-light: rgba(22, 163, 74, 0.12);
+  --warning: #d97706;
+  --warning-light: rgba(217, 119, 6, 0.12);
+  --danger: #dc2626;
+  --danger-light: rgba(220, 38, 38, 0.12);
+  --info: #0891b2;
+  --info-light: rgba(8, 145, 178, 0.12);
+  --fg: #1e293b;
+  --muted-fg: #64748b;
+  --border: rgba(15, 23, 42, 0.12);
+  --border-hover: rgba(15, 23, 42, 0.22);
+}
 
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+.dark {
+  --bg: #0b1220;
+  --surface: #131c2e;
+  --elevated: #182235;
+  --primary: #3b82f6;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --success: #22c55e;
+  --success-light: rgba(34, 197, 94, 0.15);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.15);
+  --info: #06b6d4;
+  --info-light: rgba(6, 182, 212, 0.15);
+  --fg: #f8fafc;
+  --muted-fg: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+  --color-foreground: var(--fg);
+  --color-muted-foreground: var(--muted-fg);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+
+  --font-sans: "Sora", "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   --radius-sm: 6px;

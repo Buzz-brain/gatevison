@@ -22,6 +22,9 @@ from app.services.ai.orchestrator.orchestrator import (
     PipelineOrchestrator,
     PipelineServices,
 )
+from app.services.ai.orchestrator.pending_vehicle_service import PendingVehicleService
+from app.services.ai.camera.frame_processor import FrameProcessor
+from app.services.ai.camera.camera_service import CameraError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
@@ -30,6 +33,10 @@ router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
 def get_orchestrator() -> PipelineOrchestrator:
     services = PipelineServices.default()
     return PipelineOrchestrator(services=services)
+
+
+def get_pending_vehicle_service() -> PendingVehicleService:
+    return PendingVehicleService()
 
 
 @router.post("/process/upload")
@@ -84,6 +91,108 @@ async def pipeline_process_camera(
         raise HTTPException(status_code=422, detail=str(e))
     except PipelineExecutionError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pending")
+async def pipeline_create_pending(
+    camera_id: str = Query("default"),
+    direction: str = Query("entry", pattern="^(entry|exit)$"),
+    orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
+    pending_svc: PendingVehicleService = Depends(get_pending_vehicle_service),
+    request: Request = None,
+):
+    """System-side vehicle scan: capture a frame from the attached camera, run
+    the vehicle-only sub-stages, and store a single-use pending vehicle record
+    awaiting a driver's face from the operator (Live Gate).
+    """
+    try:
+        frame, result = await orchestrator.capture_vehicle_preview(
+            camera_id=camera_id,
+            direction=direction,
+            request_id=getattr(request.state, "request_id", None),
+        )
+    except CameraError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ContextValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except PipelineExecutionError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    pending = await pending_svc.create_from_result(
+        result, direction=direction, frame=frame, source="camera"
+    )
+
+    payload = _to_api_response(result)
+    payload["data"]["pending_vehicle"] = PendingVehicleService.to_dict(pending)
+    return payload
+
+
+@router.get("/pending")
+async def pipeline_get_pending(
+    direction: str = Query("entry", pattern="^(entry|exit)$"),
+    pending_svc: PendingVehicleService = Depends(get_pending_vehicle_service),
+):
+    """Return the most recent non-expired pending vehicle awaiting a face."""
+    pending = await pending_svc.get_latest(direction=direction)
+    if pending is None:
+        return {
+            "success": True,
+            "message": "No pending vehicle",
+            "data": None,
+        }
+    return {
+        "success": True,
+        "message": "Pending vehicle found",
+        "data": PendingVehicleService.to_dict(pending),
+    }
+
+
+@router.post("/pending/complete")
+async def pipeline_complete_pending(
+    pending_id: str = Query(...),
+    face_file: UploadFile = File(...),
+    orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
+    pending_svc: PendingVehicleService = Depends(get_pending_vehicle_service),
+    request: Request = None,
+):
+    """Complete a pending vehicle identity check.
+
+    The driver's face photo (from the operator phone) is merged with the vehicle
+    frame already stored by the system camera, and the full pipeline runs once -
+    producing a single decision, gate session and history record.
+    """
+    pending = await pending_svc.repository.get(pending_id)
+    if pending is None:
+        raise HTTPException(status_code=404, detail="Pending vehicle not found")
+
+    try:
+        face_data = await face_file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Direction and plate are governed by the stored pending record so the
+    # system camera and the operator phone always agree.
+    direction = pending.direction
+
+    try:
+        result = await orchestrator.execute_from_pending(
+            frame_data=pending.frame,
+            direction=direction,
+            request_id=getattr(request.state, "request_id", None),
+            face_data=face_data,
+            require_face=True,
+            finalize=True,
+        )
+    except ContextValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except PipelineExecutionError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    await pending_svc.consume(pending_id)
+
+    payload = _to_api_response(result)
+    payload["data"]["pending_vehicle"] = PendingVehicleService.to_dict(pending)
+    return payload
 
 
 @router.get("/status")

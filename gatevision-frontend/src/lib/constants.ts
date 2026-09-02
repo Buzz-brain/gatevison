@@ -1,17 +1,6 @@
 export const APP_NAME = "GateVision";
 export const APP_VERSION = "1.0.0";
 
-export const ROUTES = {
-  DASHBOARD: "/",
-  IDENTITY: "/identity",
-  GATE_OPERATIONS: "/gate-operations",
-  REPORTS: "/reports",
-  SYSTEM: "/system",
-  SETTINGS: "/settings",
-  LOGIN: "/auth/login",
-  REGISTER: "/auth/register",
-} as const;
-
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: "/auth/login",

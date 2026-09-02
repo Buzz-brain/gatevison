@@ -10,9 +10,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { usePresentationStore } from "@/store/presentation-store";
 import { useIsMobile } from "@/hooks/use-breakpoint";
 import { useSessionGuard } from "@/hooks/use-session";
-import { CommandPaletteOverlay } from "@/features/command-palette";
 import { ProfilePanel } from "@/features/profile";
-import { SearchOverlay } from "@/features/search";
 import { ShortcutsModal } from "@/features/keyboard-shortcuts";
 import { SystemInitSequence } from "@/features/auth/components/system-init-sequence";
 import { GuidedTour } from "@/features/tour/components/guided-tour";
@@ -24,9 +22,7 @@ function AppLayout() {
   const { isActive: isPresentationActive, exit: exitPresentation } = usePresentationStore();
   const isMobile = useIsMobile();
 
-  const [commandOpen, setCommandOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useSessionGuard();
@@ -36,32 +32,10 @@ function AppLayout() {
     const handler = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
 
-      // Cmd/Ctrl + K -> command palette
-      if (meta && e.key === "k") {
-        e.preventDefault();
-        setCommandOpen((o) => !o);
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + F -> search
-      if (meta && e.shiftKey && e.key === "f") {
-        e.preventDefault();
-        setSearchOpen((o) => !o);
-        return;
-      }
-
       // Cmd/Ctrl + / -> shortcuts
       if (meta && e.key === "/") {
         e.preventDefault();
         setShortcutsOpen((o) => !o);
-        return;
-      }
-
-      // N -> notifications (if no input focused)
-      if (e.key === "n" && !["INPUT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName || "")) {
-        e.preventDefault();
-        // Toggle notification center
-        document.dispatchEvent(new CustomEvent("toggle-notifications"));
         return;
       }
 
@@ -111,11 +85,7 @@ function AppLayout() {
         style={{ marginLeft: sidebarWidth }}
       >
         {!isPresentationActive && (
-          <TopNav
-            onCommandPaletteToggle={() => setCommandOpen(true)}
-            onSearchToggle={() => setSearchOpen(true)}
-            onProfileToggle={() => setProfileOpen(true)}
-          />
+          <TopNav onProfileToggle={() => setProfileOpen(true)} />
         )}
         {/* Offline banner removed: localhost backend works without internet */}
         <main id="main-content" tabIndex={-1} className={`flex-1 ${isPresentationActive ? "p-8" : ""} focus:outline-none`}>
@@ -136,8 +106,6 @@ function AppLayout() {
       )}
 
       {/* Overlays */}
-      <CommandPaletteOverlay />
-      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       <ShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <ProfilePanel isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
 

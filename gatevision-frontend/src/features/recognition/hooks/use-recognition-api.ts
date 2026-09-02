@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/lib/api/query-client";
-import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi, processPipelineCameraApi } from "@/services/api/pipeline.api";
+import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi, processPipelineCameraApi, completePendingVehicleApi } from "@/services/api/pipeline.api";
 import { getRecognitionHistoryApi, getRecognitionResultApi, getModelStatusApi, deleteRecognitionHistoryEntryApi, clearRecognitionHistoryApi } from "@/services/api/recognition.api";
 import { startCameraApi, stopCameraApi, getCameraStatusApi, detectCamerasApi, type CameraStatus, type DetectCamerasResult } from "@/services/api/camera.api";
+import { getPendingVehicleApi, createPendingVehicleApi, type PendingVehicleInfo } from "@/services/api/pending.api";
 import { mapPipelineResult, mapHistoryEntry } from "../api/mapper";
 import type { RecognitionResult, RecognitionHistoryEntry } from "../types";
 import type { ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiModelStatus } from "../types/api";
@@ -162,5 +163,40 @@ export function useModelStatus() {
     queryFn: (): Promise<ApiModelStatus[]> => getModelStatusApi(),
     staleTime: 30_000,
     retry: 2,
+  });
+}
+
+export function useGetPendingVehicle(direction: "entry" | "exit") {
+  return useQuery({
+    queryKey: QUERY_KEYS.PIPELINE.PENDING(direction),
+    queryFn: (): Promise<PendingVehicleInfo | null> => getPendingVehicleApi(direction),
+    staleTime: 5_000,
+    retry: 1,
+  });
+}
+
+export function useCreatePendingVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (direction: "entry" | "exit") => createPendingVehicleApi(direction),
+    onSuccess: (pending, direction) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PIPELINE.PENDING(direction) });
+      queryClient.setQueryData(QUERY_KEYS.PIPELINE.PENDING(direction), pending);
+    },
+  });
+}
+
+export function useCompletePendingVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { pendingId: string; faceFile: File }): Promise<ApiPipelineResult> => {
+      return completePendingVehicleApi(args.pendingId, args.faceFile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recognition"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.TRANSACTIONS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.ACTIVE });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GATE.STATISTICS });
+    },
   });
 }

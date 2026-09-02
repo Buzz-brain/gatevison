@@ -19,6 +19,7 @@ from app.models.gate_transaction import GateTransaction
 from app.models.manual_review import ManualReview
 from app.models.system_event import SystemEvent
 from app.models.vehicle_record import VehicleFingerprint
+from app.models.pending_vehicle import PendingVehicle
 
 logger = logging.getLogger(__name__)
 client: AsyncIOMotorClient = None
@@ -88,6 +89,7 @@ async def init_database():
                 DecisionRecord, DriverProfile, VehicleProfile,
                 AccessPolicy, GateSession, GateTransaction,
                 ManualReview, SystemEvent, VehicleFingerprint,
+                PendingVehicle,
             ],
         )
         logger.info("Database connected successfully")

@@ -18,16 +18,3 @@ export type NotificationCategory =
   | "manual_review"
   | "recognition"
   | "updates";
-
-export type NotificationGroupLabel = "Today" | "Yesterday" | "This Week" | "Earlier";
-
-export interface NotificationGroup {
-  label: NotificationGroupLabel;
-  notifications: AppNotification[];
-}
-
-export interface NotificationState {
-  notifications: AppNotification[];
-  unreadCount: number;
-  isOpen: boolean;
-}

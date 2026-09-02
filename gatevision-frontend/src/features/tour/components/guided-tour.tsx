@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, ScanFace, IdCard, Car, BarChart3, ShieldCheck, Monitor, Settings,
+  LayoutDashboard, ScanFace, Car, BarChart3, ShieldCheck, Monitor, Settings,
   ChevronRight, ChevronLeft, X, SkipForward
 } from "lucide-react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -19,7 +19,6 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
   { title: "Dashboard", description: "Real-time overview of all security operations, live camera feeds, AI analytics, and system health. Your mission control center.", icon: LayoutDashboard, route: "/", position: "bottom" },
   { title: "Recognition Center", description: "Upload images or feed live camera streams for license plate detection, OCR, facial recognition, and vehicle fingerprinting.", icon: ScanFace, route: "/recognition", position: "bottom" },
-  { title: "Identity Management", description: "Manage driver profiles, vehicle registrations, access policies, and identity verification across the entire system.", icon: IdCard, route: "/identity", position: "bottom" },
   { title: "Gate Operations", description: "Monitor active gate sessions, control entry and exit points, view transaction history, and manage traffic flow.", icon: Car, route: "/gate-operations", position: "bottom" },
   { title: "Reports & Analytics", description: "Comprehensive analytics with traffic patterns, decision breakdowns, security insights, and exportable reports.", icon: BarChart3, route: "/reports", position: "bottom" },
   { title: "Administration", description: "Security command center with manual review queue, event monitoring, system health, and user management.", icon: ShieldCheck, route: "/admin", position: "bottom" },

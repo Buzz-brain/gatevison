@@ -247,6 +247,29 @@ export async function processPipelineUploadApi(
   }
 }
 
+export async function completePendingVehicleApi(
+  pendingId: string,
+  faceFile: File,
+): Promise<ApiPipelineResult> {
+  try {
+    const formData = new FormData();
+    formData.append("face_file", faceFile);
+    const response = await api.post<{ success: boolean; data: RawPipelineData; message: string }>(
+      ENDPOINTS.PIPELINE.PENDING_COMPLETE,
+      formData,
+      {
+        params: { pending_id: pendingId },
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 300_000,
+      },
+    );
+    if (response.data.data) return normalizePipelineResult(response.data.data, response.data.success);
+    throw { code: "UNKNOWN", message: response.data.message || "Identity check failed" } as NormalizedError;
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
 export async function processPipelineCameraApi(
   direction: "entry" | "exit" = "entry",
   requireFace?: boolean,

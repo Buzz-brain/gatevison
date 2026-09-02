@@ -1,21 +1,15 @@
-import { useLocation, Link } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import {
   Menu,
-  Search,
-  Bell,
   Moon,
   Sun,
   LogOut,
   User,
-  Settings,
-  Command,
-  Play,
   Monitor,
 } from "lucide-react";
 import { useSidebarStore } from "@/store/sidebar-store";
 import { useThemeStore } from "@/store/theme-store";
 import { useAuthStore } from "@/store/auth-store";
-import { useNotificationStore } from "@/store/notification-store";
 import { usePresentationStore } from "@/store/presentation-store";
 import { useIsMobile } from "@/hooks/use-breakpoint";
 import { Button } from "@/components/ui/button";
@@ -29,29 +23,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { NotificationCenter } from "@/features/notifications";
 
 interface TopNavProps {
-  onCommandPaletteToggle?: () => void;
-  onSearchToggle?: () => void;
   onProfileToggle?: () => void;
 }
 
 const routeTitles: Record<string, string> = {
   "/": "Recognition Center",
   "/recognition": "Recognition Center",
+  "/recognition-history": "Recognition History",
   "/gate-operations": "Gate Operations",
-  "/identity": "Identity Management",
   "/reports": "Reports",
   "/system": "System",
   "/settings": "Settings",
 };
 
-function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: TopNavProps) {
+function TopNav({ onProfileToggle }: TopNavProps) {
   const { setMobileOpen } = useSidebarStore();
   const { mode, toggleMode } = useThemeStore();
   const { user, logout } = useAuthStore();
-  const { unreadCount } = useNotificationStore();
   const isMobile = useIsMobile();
   const location = useLocation();
 
@@ -82,27 +72,6 @@ function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: Top
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Search */}
-      <div className="hidden sm:block">
-        <button
-          onClick={onSearchToggle}
-          className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span>Search...</span>
-          <kbd className="ml-4 flex items-center gap-0.5 rounded border border-border px-1 py-0.5 text-[10px]">
-            <Command className="h-2.5 w-2.5" />K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Mobile search trigger */}
-      {isMobile && (
-        <Button variant="ghost" size="icon" onClick={onSearchToggle} aria-label="Search">
-          <Search className="h-4 w-4" />
-        </Button>
-      )}
-
       {/* Theme toggle */}
       <Button
         variant="ghost"
@@ -130,9 +99,6 @@ function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: Top
         </Button>
       </Tooltip>
 
-      {/* Notifications (inline) */}
-      <NotificationCenter />
-
       {/* User menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -155,14 +121,6 @@ function TopNav({ onCommandPaletteToggle, onSearchToggle, onProfileToggle }: Top
           <DropdownMenuItem onClick={onProfileToggle}>
             <User className="mr-2 h-4 w-4" />
             Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onSearchToggle}>
-            <Search className="mr-2 h-4 w-4" />
-            Search
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onCommandPaletteToggle}>
-            <Command className="mr-2 h-4 w-4" />
-            Command Palette
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => logout()}>

@@ -3,7 +3,7 @@ import { rootRoute } from "./routes/__root";
 import { appLayoutRoute } from "./routes/app";
 import { indexRoute } from "./routes/index";
 import { recognitionRoute } from "./routes/recognition";
-import { identityRoute } from "./routes/identity";
+import { recognitionHistoryRoute } from "./routes/recognition-history";
 import { gateOperationsRoute } from "./routes/gate-operations";
 import { reportsRoute } from "./routes/reports";
 import { systemRoute } from "./routes/system";
@@ -19,7 +19,7 @@ const routeTree = rootRoute.addChildren([
   appLayoutRoute.addChildren([
     indexRoute,
     recognitionRoute,
-    identityRoute,
+    recognitionHistoryRoute,
     gateOperationsRoute,
     reportsRoute,
     systemRoute,

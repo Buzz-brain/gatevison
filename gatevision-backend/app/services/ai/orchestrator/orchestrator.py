@@ -212,6 +212,101 @@ class PipelineOrchestrator:
             camera_svc.note_processed(frame)
         return result
 
+    async def execute_from_pending(
+        self,
+        frame_data: bytes,
+        direction: str = "entry",
+        request_id: Optional[str] = None,
+        face_data: Optional[bytes] = None,
+        require_face: Optional[bool] = None,
+        finalize: Optional[bool] = None,
+    ) -> PipelineResult:
+        """Run the full pipeline against a vehicle frame captured earlier by the
+        system camera, combined with a newly provided face image.
+
+        Used by the two-camera fusion flow: the system scans the vehicle and the
+        operator phone supplies only the driver's face. Plates / vehicle
+        fingerprint come from the stored frame; face recognition runs on the
+        face image. Direction is determined by the stored pending record.
+        """
+        context = PipelineContext(
+            direction=direction,
+            require_face=require_face,
+            finalize=finalize if finalize is not None else True,
+        )
+        if request_id:
+            context.request_id = request_id
+        context.add_timestamp("pipeline_start")
+
+        frame = FrameProcessor.read_bytes(frame_data)
+        if frame is None:
+            raise ContextValidationError("Failed to decode stored vehicle frame")
+        context.frame = frame
+        context.frame_metadata = {
+            "height": frame.shape[0],
+            "width": frame.shape[1],
+            "channels": frame.shape[2] if frame.ndim == 3 else 1,
+        }
+
+        if face_data is not None:
+            face_frame = FrameProcessor.read_bytes(face_data)
+            if face_frame is None:
+                raise ContextValidationError("Failed to decode uploaded face image")
+            context.face_frame = face_frame
+            context.face_frame_metadata = {
+                "height": face_frame.shape[0],
+                "width": face_frame.shape[1],
+                "channels": face_frame.shape[2] if face_frame.ndim == 3 else 1,
+            }
+
+        return await self._execute(context)
+
+    async def capture_vehicle_preview(
+        self,
+        camera_id: str = "default",
+        direction: str = "entry",
+        request_id: Optional[str] = None,
+    ):
+        """Capture a vehicle frame and run ONLY the vehicle sub-stages
+        (plate detection + OCR + vehicle fingerprint) to build a pending-vehicle
+        record. Face recognition and any finalize effects are intentionally
+        skipped - the driver's face is captured separately on the operator phone.
+
+        Returns a tuple (frame, PipelineResult) so the caller can persist the
+        frame for the later combined identity pass.
+        """
+        context = PipelineContext(
+            camera_id=camera_id,
+            direction=direction,
+            require_face=False,
+            finalize=False,
+        )
+        if request_id:
+            context.request_id = request_id
+        context.add_timestamp("pipeline_start")
+
+        await self._capture_frame(context)
+        frame = context.frame
+
+        stages = [self._detect_plates, self._crop_plates, self._recognize_plates]
+        if self.services.vehicle_fingerprint_service is not None:
+            stages.append(self._process_vehicle_fingerprint)
+        workflow = WorkflowEngine(stages)
+        stage_results = await workflow.execute(context)
+
+        result = PipelineResult(
+            success=all(r.success for r in stage_results) if stage_results else False,
+            request_id=context.request_id,
+            total_processing_time=0.0,
+            stage_results=stage_results,
+            detected_plates=self._build_detected_plates(context),
+            recognized_plates=self._build_recognized_plates(context),
+            warnings=context.warnings,
+            errors=context.errors,
+            vehicle_fingerprints=self._build_vehicle_fingerprints(context),
+        )
+        return frame, result
+
     async def execute(
         self, context: PipelineContext,
     ) -> PipelineResult:

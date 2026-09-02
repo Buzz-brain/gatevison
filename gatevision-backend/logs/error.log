@@ -10142,3 +10142,5 @@ AttributeError: 'DetectionResult' object has no attribute 'get'
 2026-08-14 20:20:24 - gate - ERROR - GateError | op=exit_session | error=Face does not match the entry driver
 2026-09-01 01:10:25 - gate - ERROR - GateError | op=exit_session | error=Face does not match the entry driver
 2026-09-01 01:12:43 - gate - ERROR - GateError | op=exit_session | error=No active sessions to match
+2026-09-02 00:33:10 - gate - ERROR - GateError | op=exit_session | error=No active session matched within threshold
+2026-09-02 06:25:31 - gate - ERROR - GateError | op=entry_session | error=Vehicle 'APP971KS' is already INSIDE. Duplicate entry rejected.

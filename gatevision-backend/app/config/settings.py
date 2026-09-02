@@ -135,6 +135,13 @@ class Settings(BaseSettings):
     #   last processed frame (static scene / no new vehicle).
     CAMERA_AVOID_DUPLICATE_PROCESSING: bool = True
 
+    # Two-camera fusion (pending vehicle awaiting a face)
+    #   The system webcam stores a scanned vehicle here while an operator (e.g.
+    #   a phone at the booth via Live Gate) supplies the driver's face. Records
+    #   are single-use and expire so a stale scan is never matched to a later car.
+    PENDING_VEHICLE_TTL_SECONDS: int = 120
+    PENDING_VEHICLE_MAX_FRAME_DIM: int = 1280
+
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 
 

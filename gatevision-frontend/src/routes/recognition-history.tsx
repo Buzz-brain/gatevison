@@ -3,14 +3,14 @@ import { createRoute } from "@tanstack/react-router";
 import { appLayoutRoute } from "./app";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
-const IdentityPage = lazy(() => import("@/features/identity/page").then(m => ({ default: m.IdentityPage })));
+const RecognitionHistoryPage = lazy(() => import("@/features/recognition/history/page").then(m => ({ default: m.RecognitionHistoryPage })));
 
-export const identityRoute = createRoute({
+export const recognitionHistoryRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
-  path: "/identity",
+  path: "/recognition-history",
   component: () => (
     <Suspense fallback={<LoadingScreen message="Loading..." />}>
-      <IdentityPage />
+      <RecognitionHistoryPage />
     </Suspense>
   ),
 });

@@ -13,8 +13,6 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     label: "Navigation",
     shortcuts: [
-      { keys: ["Ctrl", "K"], description: "Command palette" },
-      { keys: ["Ctrl", "Shift", "F"], description: "Global search" },
       { keys: ["Alt", "←"], description: "Go back" },
       { keys: ["Alt", "→"], description: "Go forward" },
     ],
@@ -22,24 +20,13 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     label: "Actions",
     shortcuts: [
-      { keys: ["N"], description: "Toggle notifications" },
-      { keys: ["Ctrl", "Shift", "T"], description: "Toggle theme" },
       { keys: ["Ctrl", "/"], description: "Show shortcuts" },
     ],
   },
   {
     label: "Session",
     shortcuts: [
-      { keys: ["Ctrl", "Shift", "L"], description: "Log out" },
       { keys: ["Esc"], description: "Close dialogs / panels" },
-    ],
-  },
-  {
-    label: "Command Palette",
-    shortcuts: [
-      { keys: ["↑", "↓"], description: "Navigate items" },
-      { keys: ["Enter"], description: "Select item" },
-      { keys: ["Esc"], description: "Close palette" },
     ],
   },
 ];

@@ -78,30 +78,6 @@ export async function getModelStatusApi(): Promise<ApiModelStatus[]> {
   }
 }
 
-export async function identityVerifyApi(data: {
-  pipeline_id?: string;
-  face_id?: string;
-  vehicle_id?: string;
-}): Promise<{
-  verified: boolean;
-  confidence: number;
-  matched_person_name?: string;
-  verification_method: string;
-}> {
-  try {
-    const response = await post<{
-      verified: boolean;
-      confidence: number;
-      matched_person_name?: string;
-      verification_method: string;
-    }>(ENDPOINTS.IDENTITY.VERIFY, data);
-    if (response.success && response.data) return response.data;
-    throw { code: "UNKNOWN", message: response.message || "Identity verification failed" } as NormalizedError;
-  } catch (error) {
-    throw normalizeError(error);
-  }
-}
-
 export async function gateEntryApi(data: {
   pipeline_id: string;
   decision: string;

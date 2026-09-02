@@ -66,6 +66,7 @@ export const QUERY_KEYS = {
   PIPELINE: {
     STATUS: ["pipeline", "status"] as const,
     METRICS: ["pipeline", "metrics"] as const,
+    PENDING: (direction?: string) => ["pipeline", "pending", direction] as const,
   },
   FACE: {
     MODEL_INFO: ["face", "model-info"] as const,
@@ -87,16 +88,5 @@ export const QUERY_KEYS = {
     HEALTH: ["system", "health"] as const,
     MODELS: ["system", "models"] as const,
     PERFORMANCE: ["system", "performance"] as const,
-  },
-  IDENTITY: {
-    DRIVERS: (search?: string) => ["identity", "drivers", search] as const,
-    DRIVER: (id: string) => ["identity", "driver", id] as const,
-    VEHICLES: (search?: string) => ["identity", "vehicles", search] as const,
-    VEHICLE: (id: string) => ["identity", "vehicle", id] as const,
-    POLICIES: (search?: string) => ["identity", "policies", search] as const,
-    POLICY: (id: string) => ["identity", "policy", id] as const,
-    STATS: ["identity", "stats"] as const,
-    ACTIVITY: ["identity", "activity"] as const,
-    RELATIONSHIPS: ["identity", "relationships"] as const,
   },
 };

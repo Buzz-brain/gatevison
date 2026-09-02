@@ -35,3 +35,19 @@ def _no_real_decision_writes(monkeypatch):
         "app.services.ai.orchestrator.orchestrator.DecisionRecord",
         _StubDecisionRecord,
     )
+
+    # Same treatment for PendingVehicle: constructing the real Beanie document
+    # requires an initialized collection, so the pending-vehicle service builds a
+    # lightweight constructible stand-in in tests (insert is a no-op; the
+    # repository is swapped with mocks in its own tests).
+    from app.services.ai.orchestrator import pending_vehicle_service as _pvs
+
+    class _StubPendingVehicle:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+        async def insert(self):
+            return self
+
+    monkeypatch.setattr(_pvs, "PendingVehicle", _StubPendingVehicle)

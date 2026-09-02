@@ -2,7 +2,6 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
-  Users,
   DoorOpen,
   BarChart3,
   Settings,
@@ -10,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ScanFace,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,7 @@ const navSections: NavSection[] = [
     label: "Operations",
     items: [
       { label: "Recognition Center", icon: ScanFace, href: "/recognition" },
+      { label: "Recognition History", icon: History, href: "/recognition-history" },
       { label: "Gate Operations", icon: DoorOpen, href: "/gate-operations" },
     ],
   },
@@ -44,12 +45,6 @@ const navSections: NavSection[] = [
     items: [
       { label: "Reports", icon: BarChart3, href: "/reports" },
       { label: "System", icon: Wrench, href: "/system" },
-    ],
-  },
-  {
-    label: "Enterprise",
-    items: [
-      { label: "Enterprise Identity", icon: Users, href: "/identity", badge: "Future" },
     ],
   },
 ];
@@ -65,7 +60,7 @@ function Sidebar() {
 
   const isActive = (href: string) => {
     if (href === "/") return location.pathname === "/";
-    return location.pathname.startsWith(href);
+    return location.pathname === href;
   };
 
   const sidebarContent = (

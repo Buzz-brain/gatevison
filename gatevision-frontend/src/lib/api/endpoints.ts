@@ -34,6 +34,9 @@ export const ENDPOINTS = {
     PROCESS_CAMERA: "/pipeline/process/camera",
     STATUS: "/pipeline/status",
     METRICS: "/pipeline/metrics",
+    PENDING_CREATE: "/pipeline/pending",
+    PENDING_GET: "/pipeline/pending",
+    PENDING_COMPLETE: "/pipeline/pending/complete",
   },
   FACE: {
     ENROLL: "/face/enroll",
@@ -42,31 +45,6 @@ export const ENDPOINTS = {
     HISTORY: "/face/history",
     MODEL_INFO: "/face/model-info",
     HEALTH: "/face/health",
-  },
-  IDENTITY: {
-    VERIFY: "/identity/verify",
-    SEARCH: "/identity/search",
-    STATS: "/identity/stats",
-    ACTIVITY: "/identity/activity",
-    DRIVERS: {
-      BASE: "/identity/drivers",
-      BY_ID: (id: string) => `/identity/drivers/${id}`,
-    },
-    VEHICLES: {
-      BASE: "/identity/vehicles",
-      BY_ID: (id: string) => `/identity/vehicles/${id}`,
-    },
-    POLICIES: {
-      BASE: "/identity/policies",
-      BY_ID: (id: string) => `/identity/policies/${id}`,
-    },
-    LINK: "/identity/link",
-    UNLINK: "/identity/unlink",
-    ENROLLMENT: {
-      DRIVER: "/identity/enroll/driver",
-      VEHICLE: "/identity/enroll/vehicle",
-    },
-    RELATIONSHIPS: "/identity/relationships",
   },
   GATE: {
     ENTRY: "/gate/entry",
