@@ -35,6 +35,7 @@ export const ENDPOINTS = {
     STATUS: "/pipeline/status",
     METRICS: "/pipeline/metrics",
     PENDING_CREATE: "/pipeline/pending",
+    PENDING_CREATE_FROM_FRAME: "/pipeline/pending/from-frame",
     PENDING_GET: "/pipeline/pending",
     PENDING_COMPLETE: "/pipeline/pending/complete",
   },

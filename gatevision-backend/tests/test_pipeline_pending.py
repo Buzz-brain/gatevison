@@ -361,3 +361,106 @@ async def test_execute_from_pending_invalid_frame_raises():
             await orch.execute_from_pending(
                 frame_data=b"bad", direction="entry", face_data=None
             )
+
+
+@pytest.mark.asyncio
+async def test_pending_from_frame_runs_only_vehicle_stages():
+    from app.services.ai.orchestrator.orchestrator import PipelineServices
+
+    detection = MagicMock()
+    detection.camera_service = MagicMock()
+    detection.detect_from_frame = AsyncMock(return_value={
+        "detections": [{"bbox": [10, 15, 50, 15, 50, 35, 10, 35], "confidence": 0.95}],
+    })
+    vehicle = MagicMock()
+    vehicle.is_available.return_value = True
+    vehicle.extract_fingerprint = AsyncMock(return_value={
+        "embedding": [0.1, 0.2, 0.3], "dimension": 3, "duration_ms": 2.0, "plate_text": None,
+    })
+    services = PipelineServices(
+        detection_service=detection,
+        ocr_service=MagicMock(),
+    )
+    services.vehicle_fingerprint_service = vehicle
+
+    orch = PipelineOrchestrator(services=services)
+    with patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.read_bytes",
+        return_value=SAMPLE_FRAME,
+    ):
+        frame, result = await orch.pending_from_frame(
+            frame_data=b"frame", direction="entry"
+        )
+
+    assert frame is not None
+    assert len(result.detected_plates) == 1
+    assert len(result.vehicle_fingerprints) == 1
+    # No camera capture and no face recognition should happen.
+    detection.camera_service.capture.assert_not_called()
+    assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_pending_from_frame_invalid_frame_raises():
+    from app.services.ai.orchestrator.orchestrator import PipelineServices
+    from app.services.ai.orchestrator.exceptions import ContextValidationError
+
+    services = PipelineServices(
+        detection_service=MagicMock(),
+        ocr_service=MagicMock(),
+    )
+    orch = PipelineOrchestrator(services=services)
+    with patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.read_bytes",
+        return_value=None,
+    ):
+        with pytest.raises(ContextValidationError):
+            await orch.pending_from_frame(frame_data=b"bad", direction="entry")
+
+
+@pytest.mark.asyncio
+async def test_create_pending_from_frame_endpoint(app):
+    svc = PendingVehicleService()
+    svc.repository = MagicMock()
+    svc.repository.create = AsyncMock(side_effect=lambda record: record)
+
+    orch = PipelineOrchestrator(services=MagicMock())
+    orch.pending_from_frame = AsyncMock(return_value=(SAMPLE_FRAME, _make_result()))
+
+    _override_deps(app, orch=orch, svc=svc)
+    with patch(
+        "app.services.ai.camera.frame_processor.FrameProcessor.to_bytes",
+        return_value=b"encoded",
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post(
+                "/pipeline/pending/from-frame?direction=entry",
+                files={"frame_file": ("vehicle.jpg", b"\xff\xd8fake", "image/jpeg")},
+            )
+
+    assert resp.status_code == 200
+    orch.pending_from_frame.assert_awaited_once()
+    call = orch.pending_from_frame.call_args
+    assert call.kwargs["direction"] == "entry"
+    assert call.kwargs["frame_data"] == b"\xff\xd8fake"
+    svc.repository.create.assert_awaited_once()
+    data = resp.json()["data"]
+    assert data["pending_vehicle"]["plate_text"] == "ABC123AA"
+
+
+@pytest.mark.asyncio
+async def test_create_pending_from_frame_endpoint_empty_422(app):
+    svc = PendingVehicleService()
+    svc.repository = MagicMock()
+    orch = MagicMock()
+    orch.pending_from_frame = AsyncMock()
+    _override_deps(app, orch=orch, svc=svc)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post(
+            "/pipeline/pending/from-frame?direction=entry",
+            files={"frame_file": ("vehicle.jpg", b"", "image/jpeg")},
+        )
+    assert resp.status_code == 422
+    orch.pending_from_frame.assert_not_called()

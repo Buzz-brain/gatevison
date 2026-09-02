@@ -127,6 +127,49 @@ async def pipeline_create_pending(
     return payload
 
 
+@router.post("/pending/from-frame")
+async def pipeline_create_pending_from_frame(
+    frame_file: UploadFile = File(...),
+    direction: str = Query("entry", pattern="^(entry|exit)$"),
+    orchestrator: PipelineOrchestrator = Depends(get_orchestrator),
+    pending_svc: PendingVehicleService = Depends(get_pending_vehicle_service),
+    request: Request = None,
+):
+    """Hybrid hand-off: store a pending vehicle record built from a caller-
+    supplied frame (any device's browser camera), so the driver's face can be
+    completed on the other device.
+
+    Runs only the vehicle sub-stages against the uploaded frame - no gate /
+    finalize effects here. The pending's direction and plate come from this
+    frame, and a later /pending/complete supplies the face to finalize.
+    """
+    try:
+        frame_data = await frame_file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not frame_data:
+        raise HTTPException(status_code=422, detail="Empty vehicle frame")
+
+    try:
+        frame, result = await orchestrator.pending_from_frame(
+            frame_data=frame_data,
+            direction=direction,
+            request_id=getattr(request.state, "request_id", None),
+        )
+    except ContextValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except PipelineExecutionError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    pending = await pending_svc.create_from_result(
+        result, direction=direction, frame=frame, source="frame"
+    )
+
+    payload = _to_api_response(result)
+    payload["data"]["pending_vehicle"] = PendingVehicleService.to_dict(pending)
+    return payload
+
+
 @router.get("/pending")
 async def pipeline_get_pending(
     direction: str = Query("entry", pattern="^(entry|exit)$"),

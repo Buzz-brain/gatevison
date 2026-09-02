@@ -12,7 +12,7 @@ import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useUIStore } from "@/store/ui-store";
 import { useForceCloseSession } from "@/features/gate-operations/hooks/use-gate-operations-api";
 import { playGateSound, primeAudio, type GateSound } from "../utils/sounds";
-import { useProcessPipeline } from "../hooks/use-recognition-api";
+import { useProcessPipeline, useCreatePendingFromFrame } from "../hooks/use-recognition-api";
 import { completePendingVehicleApi } from "@/services/api/pipeline.api";
 import { getPendingVehicleApi, type PendingVehicleInfo } from "@/services/api/pending.api";
 import { recognizeFaceUploadApi } from "@/services/api/face.api";
@@ -20,7 +20,7 @@ import { mapPipelineResult } from "../api/mapper";
 import type { RecognitionResult } from "../types";
 import type { ApiPipelineResult } from "../types/api";
 
-type Phase = "welcome" | "scanning" | "face_scan" | "face_validating" | "complete" | "error";
+type Phase = "welcome" | "scanning" | "face_scan" | "face_validating" | "complete" | "handoff" | "error";
 
 interface LiveGateOverlayProps {
   onClose: () => void;
@@ -203,6 +203,7 @@ function buildFinaleSteps(
 function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayProps) {
   const prefersReduced = useReducedMotion();
   const mutation = useProcessPipeline();
+  const createPendingMutation = useCreatePendingFromFrame();
   const addNotification = useUIStore((s) => s.addNotification);
   const forceClose = useForceCloseSession();
 
@@ -221,6 +222,8 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const [faceDenied, setFaceDenied] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const facingModeRef = useRef<"user" | "environment">("environment");
+  const [handoffPending, setHandoffPending] = useState<PendingVehicleInfo | null>(null);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -511,6 +514,38 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     await runScan(file, "vehicle");
   }, [runScan, previewUrl]);
 
+  const handleSendToDevice = useCallback(async () => {
+    primeAudio();
+    const file = await captureFrame();
+    if (!file) return;
+    const seq = ++journeySeqRef.current;
+    setHandoffError(null);
+    setPhase("scanning");
+    setNarrative("Recording the vehicle...");
+    try {
+      const pending = await createPendingMutation.mutateAsync({ frame: file, direction });
+      if (journeySeqRef.current !== seq) return;
+      const plate = pending.plate_text;
+      setHandoffPending(pending);
+      setPhase("handoff");
+      const msg = plate
+        ? `Vehicle ${plate} recorded. Complete identity on the other device.`
+        : "Vehicle recorded. Complete identity on the other device.";
+      setNarrative(msg);
+      speak(
+        "Vehicle recorded. Open the gate app on the other device to complete identity.",
+        mutedRef.current,
+      );
+    } catch (e) {
+      if (journeySeqRef.current !== seq) return;
+      journeySeqRef.current++;
+      setPhase("welcome");
+      const msg = e instanceof Error ? e.message : "Could not record the vehicle.";
+      setHandoffError(msg);
+      setNarrative("Sorry, I could not record the vehicle. Please try again.");
+    }
+  }, [captureFrame, createPendingMutation, direction]);
+
   const finishFaceDenied = useCallback(() => {
     journeySeqRef.current++;
     setPhase("complete");
@@ -621,6 +656,9 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     pendingCheckedRef.current = false;
     setFaceDenied(false);
     setScanKind("vehicle");
+    setHandoffPending(null);
+    setHandoffError(null);
+    setPhase("welcome");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     if (facePreviewUrl) URL.revokeObjectURL(facePreviewUrl);
@@ -814,6 +852,27 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                 <Upload className="h-5 w-5" />
                 Upload Image
               </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={handleSendToDevice}
+                disabled={createPendingMutation.isPending}
+                className="h-12 px-7 text-base gap-2"
+                title="Record this vehicle and complete identity on another device (hybrid hand-off)"
+              >
+                {createPendingMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}
+                {createPendingMutation.isPending ? "Recording..." : "Send to Other Device"}
+              </Button>
+            </>
+          )}
+
+          {phase === "handoff" && (
+            <>
+              <Button size="lg" onClick={resetKiosk} className="h-12 px-7 text-base gap-2">
+                <ScanLine className="h-5 w-5" />
+                Scan Next Vehicle
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
             </>
           )}
 
@@ -918,6 +977,19 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
               <p className="mt-0.5 text-lg font-bold">{result.decision.recommendedAction}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">Attempt {Math.max(attempts, 1)}</p>
             </div>
+          </div>
+        )}
+
+        {phase === "handoff" && handoffPending && (
+          <div className="w-full rounded-2xl border border-warning/30 bg-warning/5 p-4 text-center">
+            <AlertTriangle className="mx-auto mb-2 h-6 w-6 text-warning" />
+            <p className="text-lg font-semibold">
+              Vehicle {handoffPending.plate_text || "recorded"} is awaiting identity.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Open the Live Gate on the other device to complete the driver's identity check.
+            </p>
+            {handoffError && <p className="mt-2 text-sm text-danger">{handoffError}</p>}
           </div>
         )}
 

@@ -46,3 +46,24 @@ export async function createPendingVehicleApi(
     throw normalizeError(error);
   }
 }
+
+export async function createPendingFromFrameApi(
+  frame: File,
+  direction: "entry" | "exit" = "entry",
+): Promise<PendingVehicleInfo> {
+  try {
+    const form = new FormData();
+    form.append("frame_file", frame);
+    const response = await api.post<{ success: boolean; data: { pending_vehicle: PendingVehicleInfo } | { message?: string }; message: string }>(
+      ENDPOINTS.PIPELINE.PENDING_CREATE_FROM_FRAME,
+      form,
+      { params: { direction } },
+    );
+    const body = response.data;
+    const pending = body.data as { pending_vehicle?: PendingVehicleInfo };
+    if (body.success && pending?.pending_vehicle) return pending.pending_vehicle;
+    throw { code: "UNKNOWN", message: body.message || "Could not create a pending vehicle" };
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}

@@ -33651,3 +33651,221 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-09-02 09:27:36 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.94ms) request_id=871bae85f93f | event=request_completed | duration_ms=4.94
 2026-09-02 09:28:36 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=213.255.128.107) request_id=46ad82e07e50 | event=request_start
 2026-09-02 09:28:37 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (13.46ms) request_id=46ad82e07e50 | event=request_completed | duration_ms=13.46
+2026-09-02 13:44:15 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=d7e974541242 | event=request_start
+2026-09-02 13:44:15 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 401 (29.80ms) request_id=d7e974541242 | event=request_completed | duration_ms=29.8
+2026-09-02 13:44:19 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/refresh (client=102.88.114.84) request_id=757fd39959e0 | event=request_start
+2026-09-02 13:44:19 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/refresh -> 200 (62.04ms) request_id=757fd39959e0 | event=request_completed | duration_ms=62.04
+2026-09-02 13:44:26 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=6d3e3331904a | event=request_start
+2026-09-02 13:44:26 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.85ms) request_id=6d3e3331904a | event=request_completed | duration_ms=5.85
+2026-09-02 13:44:58 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=196.220.245.221) request_id=166e3d84f8ee | event=request_start
+2026-09-02 13:44:59 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-02 13:44:59 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (348.10ms) request_id=166e3d84f8ee | event=request_completed | duration_ms=348.1
+2026-09-02 13:45:16 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=274e62bd863d | event=request_start
+2026-09-02 13:45:16 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 401 (3.06ms) request_id=274e62bd863d | event=request_completed | duration_ms=3.06
+2026-09-02 13:45:17 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/refresh (client=102.88.114.84) request_id=ce956c24b693 | event=request_start
+2026-09-02 13:45:17 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/refresh -> 200 (19.46ms) request_id=ce956c24b693 | event=request_completed | duration_ms=19.46
+2026-09-02 13:45:18 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=305a7debaa3f | event=request_start
+2026-09-02 13:45:18 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.46ms) request_id=305a7debaa3f | event=request_completed | duration_ms=6.46
+2026-09-02 13:46:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=6042b9cb2f35 | event=request_start
+2026-09-02 13:46:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.27ms) request_id=6042b9cb2f35 | event=request_completed | duration_ms=6.27
+2026-09-02 13:48:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.88.114.84) request_id=00c50cdcc61e | event=request_start
+2026-09-02 13:48:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.77ms) request_id=00c50cdcc61e | event=request_completed | duration_ms=6.77
+2026-09-02 13:52:03 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=21ba8227bc53 | event=request_start
+2026-09-02 13:52:03 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.46ms) request_id=21ba8227bc53 | event=request_completed | duration_ms=5.46
+2026-09-02 13:53:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=6a807f957327 | event=request_start
+2026-09-02 13:53:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.17ms) request_id=6a807f957327 | event=request_completed | duration_ms=4.17
+2026-09-02 13:53:52 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=102.89.47.83) request_id=9d3471470618 | event=request_start
+2026-09-02 13:53:52 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-02 13:53:52 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (334.70ms) request_id=9d3471470618 | event=request_completed | duration_ms=334.7
+2026-09-02 13:54:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=9eeee65b3677 | event=request_start
+2026-09-02 13:54:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.04ms) request_id=9eeee65b3677 | event=request_completed | duration_ms=3.04
+2026-09-02 13:54:13 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=102.89.47.83) request_id=6d12bb77c825 | event=request_start
+2026-09-02 13:54:13 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 404 (5.34ms) request_id=6d12bb77c825 | event=request_completed | duration_ms=5.34
+2026-09-02 13:54:14 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=102.89.47.83) request_id=f3dd27a7eeec | event=request_start
+2026-09-02 13:54:14 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 404 (3.87ms) request_id=f3dd27a7eeec | event=request_completed | duration_ms=3.87
+2026-09-02 13:54:47 - app.middleware.request_logging - INFO - Request started: POST /api/v1/pipeline/process/upload (client=102.89.47.83) request_id=93c1709022e8 | event=request_start
+2026-09-02 13:55:07 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-02 13:55:07 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-02 13:55:07 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline AI services configured | event=pipeline_services | detection=DetectionService | ocr=OcrService | face=enabled(model_ready) | vehicle=enabled(model_ready) | decision=DecisionEngine | gate_workflow=WorkflowService
+2026-09-02 13:55:07 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline started request_id=93c1709022e8 | event=pipeline_started
+2026-09-02 13:55:07 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _capture_frame (0.02ms) request_id=93c1709022e8 | event=stage_completed | stage=_capture_frame | duration_ms=0.02
+2026-09-02 13:55:07 - gatevision.detection - INFO - Detection started | source=unknown
+2026-09-02 13:55:08 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=527eb42b9954 | event=request_start
+2026-09-02 13:55:08 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=538c534278e1 | event=request_start
+2026-09-02 13:55:08 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (13.09ms) request_id=527eb42b9954 | event=request_completed | duration_ms=13.09
+2026-09-02 13:55:08 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (14.56ms) request_id=538c534278e1 | event=request_completed | duration_ms=14.56
+2026-09-02 13:55:08 - app.services.ai.camera.storage_service - INFO - Image saved: C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads\plates\plate_0.501_94385a7f.jpg
+2026-09-02 13:55:08 - gatevision.detection - INFO - Detection completed | plates=1 | time_ms=392.73
+2026-09-02 13:55:08 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _detect_plates (447.90ms) request_id=93c1709022e8 | event=stage_completed | stage=_detect_plates | duration_ms=447.9
+2026-09-02 13:55:08 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _crop_plates (0.20ms) request_id=93c1709022e8 | event=stage_completed | stage=_crop_plates | duration_ms=0.2
+2026-09-02 13:55:09 - app.services.ai.ocr.plate_reader - INFO - OCR inference | event=ocr_inference | crop_index=0 | input_size=87x42 | prepared_size=87x42 | results=1 | top='APP.971KS' | elapsed_ms=944
+2026-09-02 13:55:09 - app.services.ai.orchestrator.orchestrator - INFO - OCR result: 93c1709022e8 request_id=93c1709022e8 | event=ocr_crop_result | crop_index=0 | crop_size=87x42 | detector_conf=0.501 | text='APP.971KS' | ocr_conf=0.835 | validation=valid
+2026-09-02 13:55:09 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_plates (949.55ms) request_id=93c1709022e8 | event=stage_completed | stage=_recognize_plates | duration_ms=949.55
+2026-09-02 13:55:09 - app.services.ai.face_recognition.recognition_logger - INFO - Face recognition started event=face_recognition_started
+2026-09-02 13:55:09 - app.services.ai.face_recognition.recognition_logger - WARNING - No face detected in image event=no_face_detected
+2026-09-02 13:55:09 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_faces (469.27ms) request_id=93c1709022e8 | event=stage_completed | stage=_recognize_faces | duration_ms=469.27
+2026-09-02 13:55:10 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_vehicle_fingerprint (830.23ms) request_id=93c1709022e8 | event=stage_completed | stage=_process_vehicle_fingerprint | duration_ms=830.23
+2026-09-02 13:55:10 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _evaluate_decision (1.98ms) request_id=93c1709022e8 | event=stage_completed | stage=_evaluate_decision | duration_ms=1.98
+2026-09-02 13:55:10 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _persist_decision (0.01ms) request_id=93c1709022e8 | event=stage_completed | stage=_persist_decision | duration_ms=0.01
+2026-09-02 13:55:10 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_gate_workflow (0.00ms) request_id=93c1709022e8 | event=stage_completed | stage=_process_gate_workflow | duration_ms=0.0
+2026-09-02 13:55:10 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _aggregate_results (0.00ms) request_id=93c1709022e8 | event=stage_completed | stage=_aggregate_results | duration_ms=0.0
+2026-09-02 13:55:10 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline succeeded (2704.35ms) request_id=93c1709022e8 | event=pipeline_completed
+2026-09-02 13:55:10 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline summary: total=2704.35ms stages={'_capture_frame': 0.02, '_detect_plates': 447.9, '_crop_plates': 0.2, '_recognize_plates': 949.55, '_recognize_faces': 469.27, '_process_vehicle_fingerprint': 830.23, '_evaluate_decision': 1.98, '_persist_decision': 0.01, '_process_gate_workflow': 0.0, '_aggregate_results': 0.0} decision=GRANT recognized=1 errors=0 request_id=93c1709022e8 | event=pipeline_summary | decision=GRANT
+2026-09-02 13:55:10 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/pipeline/process/upload -> 200 (23089.55ms) request_id=93c1709022e8 | event=request_completed | duration_ms=23089.55
+2026-09-02 13:55:31 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=102.89.47.83) request_id=93909adc42cc | event=request_start
+2026-09-02 13:55:31 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 404 (3.26ms) request_id=93909adc42cc | event=request_completed | duration_ms=3.26
+2026-09-02 13:55:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=e3ffea6278a6 | event=request_start
+2026-09-02 13:55:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.82ms) request_id=e3ffea6278a6 | event=request_completed | duration_ms=5.82
+2026-09-02 13:55:57 - app.middleware.request_logging - INFO - Request started: POST /api/v1/pipeline/process/upload (client=102.89.47.83) request_id=d7e19f374756 | event=request_start
+2026-09-02 13:56:03 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-02 13:56:03 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-02 13:56:03 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline AI services configured | event=pipeline_services | detection=DetectionService | ocr=OcrService | face=enabled(model_ready) | vehicle=enabled(model_ready) | decision=DecisionEngine | gate_workflow=WorkflowService
+2026-09-02 13:56:03 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline started request_id=d7e19f374756 | event=pipeline_started
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _capture_frame (0.00ms) request_id=d7e19f374756 | event=stage_completed | stage=_capture_frame | duration_ms=0.0
+2026-09-02 13:56:03 - gatevision.detection - INFO - Detection started | source=unknown
+2026-09-02 13:56:03 - gatevision.detection - INFO - Detection completed | plates=0 | time_ms=205.62
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _detect_plates (206.26ms) request_id=d7e19f374756 | event=stage_completed | stage=_detect_plates | duration_ms=206.26
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _crop_plates (0.01ms) request_id=d7e19f374756 | event=stage_completed | stage=_crop_plates | duration_ms=0.01
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_plates (0.00ms) request_id=d7e19f374756 | event=stage_completed | stage=_recognize_plates | duration_ms=0.0
+2026-09-02 13:56:03 - app.services.ai.face_recognition.recognition_logger - INFO - Face recognition started event=face_recognition_started
+2026-09-02 13:56:03 - app.services.ai.face_recognition.recognition_logger - WARNING - No face detected in image event=no_face_detected
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_faces (381.16ms) request_id=d7e19f374756 | event=stage_completed | stage=_recognize_faces | duration_ms=381.16
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_vehicle_fingerprint (249.50ms) request_id=d7e19f374756 | event=stage_completed | stage=_process_vehicle_fingerprint | duration_ms=249.5
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _evaluate_decision (0.21ms) request_id=d7e19f374756 | event=stage_completed | stage=_evaluate_decision | duration_ms=0.21
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _persist_decision (0.00ms) request_id=d7e19f374756 | event=stage_completed | stage=_persist_decision | duration_ms=0.0
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_gate_workflow (0.00ms) request_id=d7e19f374756 | event=stage_completed | stage=_process_gate_workflow | duration_ms=0.0
+2026-09-02 13:56:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _aggregate_results (0.00ms) request_id=d7e19f374756 | event=stage_completed | stage=_aggregate_results | duration_ms=0.0
+2026-09-02 13:56:03 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline succeeded (840.23ms) request_id=d7e19f374756 | event=pipeline_completed
+2026-09-02 13:56:03 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline summary: total=840.23ms stages={'_capture_frame': 0.0, '_detect_plates': 206.26, '_crop_plates': 0.01, '_recognize_plates': 0.0, '_recognize_faces': 381.16, '_process_vehicle_fingerprint': 249.5, '_evaluate_decision': 0.21, '_persist_decision': 0.0, '_process_gate_workflow': 0.0, '_aggregate_results': 0.0} decision=DENY recognized=0 errors=0 request_id=d7e19f374756 | event=pipeline_summary | decision=DENY
+2026-09-02 13:56:03 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/pipeline/process/upload -> 200 (6173.91ms) request_id=d7e19f374756 | event=request_completed | duration_ms=6173.91
+2026-09-02 13:56:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=dff56447fe73 | event=request_start
+2026-09-02 13:56:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (9.30ms) request_id=dff56447fe73 | event=request_completed | duration_ms=9.3
+2026-09-02 13:56:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=ba7495e5e410 | event=request_start
+2026-09-02 13:56:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.28ms) request_id=ba7495e5e410 | event=request_completed | duration_ms=3.28
+2026-09-02 13:57:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=33ae5ea2de64 | event=request_start
+2026-09-02 13:57:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.43ms) request_id=33ae5ea2de64 | event=request_completed | duration_ms=3.43
+2026-09-02 13:57:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=3ce058f7d986 | event=request_start
+2026-09-02 13:57:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.85ms) request_id=3ce058f7d986 | event=request_completed | duration_ms=3.85
+2026-09-02 13:58:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=a47f42a04efe | event=request_start
+2026-09-02 13:58:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.61ms) request_id=a47f42a04efe | event=request_completed | duration_ms=3.61
+2026-09-02 13:58:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=bd78b5c1d2c1 | event=request_start
+2026-09-02 13:58:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.95ms) request_id=bd78b5c1d2c1 | event=request_completed | duration_ms=3.95
+2026-09-02 13:59:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=d52913252f64 | event=request_start
+2026-09-02 13:59:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.83ms) request_id=d52913252f64 | event=request_completed | duration_ms=3.83
+2026-09-02 13:59:42 - app.middleware.request_logging - INFO - Request started: GET /health (client=127.0.0.1) request_id=1079cac1d83d | event=request_start
+2026-09-02 13:59:42 - app.middleware.request_logging - INFO - Request completed: GET /health -> 200 (13.59ms) request_id=1079cac1d83d | event=request_completed | duration_ms=13.59
+2026-09-02 13:59:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=73bcace4a333 | event=request_start
+2026-09-02 13:59:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (9.02ms) request_id=73bcace4a333 | event=request_completed | duration_ms=9.02
+2026-09-02 13:59:57 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=127.0.0.1) request_id=f94b73e1797e | event=request_start
+2026-09-02 13:59:57 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 404 (4.26ms) request_id=f94b73e1797e | event=request_completed | duration_ms=4.26
+2026-09-02 14:00:22 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/logout (client=102.89.47.83) request_id=d32130cef436 | event=request_start
+2026-09-02 14:00:22 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/logout -> 404 (2.14ms) request_id=d32130cef436 | event=request_completed | duration_ms=2.14
+2026-09-02 14:00:27 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=f42f6b2d724c | event=request_start
+2026-09-02 14:00:27 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.43ms) request_id=f42f6b2d724c | event=request_completed | duration_ms=4.43
+2026-09-02 14:00:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=64979fa9feab | event=request_start
+2026-09-02 14:00:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.21ms) request_id=64979fa9feab | event=request_completed | duration_ms=3.21
+2026-09-02 14:01:01 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=102.89.47.83) request_id=44adb424f650 | event=request_start
+2026-09-02 14:01:01 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-02 14:01:01 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (344.77ms) request_id=44adb424f650 | event=request_completed | duration_ms=344.77
+2026-09-02 14:01:11 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=102.89.47.83) request_id=20779f64831b | event=request_start
+2026-09-02 14:01:11 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 404 (4.76ms) request_id=20779f64831b | event=request_completed | duration_ms=4.76
+2026-09-02 14:01:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=252ae2614dad | event=request_start
+2026-09-02 14:01:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.80ms) request_id=252ae2614dad | event=request_completed | duration_ms=4.8
+2026-09-02 14:02:05 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=f25a62a989a5 | event=request_start
+2026-09-02 14:02:05 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.08ms) request_id=f25a62a989a5 | event=request_completed | duration_ms=4.08
+2026-09-02 14:02:05 - app.database.connection - INFO - Database connection closed
+2026-09-02 14:02:43 - app.database.connection - INFO - Database connected successfully
+2026-09-02 14:02:43 - app.services.ai.warmup - INFO - Warm-up: starting plate detector + OCR request_id=startup | event=warmup_started
+2026-09-02 14:02:43 - app.services.ai.plate_detection.model_loader - INFO - Loading YOLO model from: models/license_plate_detector.pt
+2026-09-02 14:02:43 - app.services.ai.registry.model_registry - INFO - Registered model 'yolo' (object_detection) on cpu
+2026-09-02 14:02:43 - app.services.ai.plate_detection.model_loader - INFO - Model loaded: device=cpu, version=8.3.87
+2026-09-02 14:02:43 - app.services.ai.plate_detection.model_loader - INFO - YOLO model classes: {0: 'license_plate'} | event=model_classes
+2026-09-02 14:02:43 - app.services.ai.plate_detection.model_loader - INFO - YOLO plate classes: ['license_plate'] | event=model_plate_classes
+2026-09-02 14:02:44 - app.services.ai.warmup - INFO - Warm-up: plate detector ready (546.72ms) request_id=startup | event=warmup_model_ready | duration_ms=546.72 | model=plate_detector
+2026-09-02 14:02:44 - app.services.ai.ocr.ocr_loader - INFO - Loading EasyOCR reader: langs=['en'], gpu=False
+2026-09-02 14:02:44 - easyocr.easyocr - WARNING - Using CPU. Note: This module is much faster with a GPU.
+2026-09-02 14:02:48 - app.services.ai.registry.model_registry - INFO - Registered model 'easyocr' (ocr) on cpu
+2026-09-02 14:02:48 - app.services.ai.ocr.ocr_loader - INFO - OCR reader loaded: device=cpu, langs=['en']
+2026-09-02 14:02:48 - app.services.ai.warmup - INFO - Warm-up: OCR reader ready (4194.99ms) request_id=startup | event=warmup_model_ready | duration_ms=4194.99 | model=ocr
+2026-09-02 14:02:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=cff4f352dc34 | event=request_start
+2026-09-02 14:02:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (20.63ms) request_id=cff4f352dc34 | event=request_completed | duration_ms=20.63
+2026-09-02 14:03:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=ed311367c4c9 | event=request_start
+2026-09-02 14:03:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.76ms) request_id=ed311367c4c9 | event=request_completed | duration_ms=3.76
+2026-09-02 14:03:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=2b15b0ec47c7 | event=request_start
+2026-09-02 14:03:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.79ms) request_id=2b15b0ec47c7 | event=request_completed | duration_ms=7.79
+2026-09-02 14:04:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=c7fbfc698719 | event=request_start
+2026-09-02 14:04:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.22ms) request_id=c7fbfc698719 | event=request_completed | duration_ms=3.22
+2026-09-02 14:04:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=b196079be72f | event=request_start
+2026-09-02 14:04:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.48ms) request_id=b196079be72f | event=request_completed | duration_ms=7.48
+2026-09-02 14:05:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=0d893f755bfa | event=request_start
+2026-09-02 14:05:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.06ms) request_id=0d893f755bfa | event=request_completed | duration_ms=4.06
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/reports (client=102.89.47.83) request_id=4af4b241b3cc | event=request_start
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/manual-reviews (client=102.89.47.83) request_id=4f4faba45695 | event=request_start
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/reports -> 200 (17.11ms) request_id=4af4b241b3cc | event=request_completed | duration_ms=17.11
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/manual-reviews -> 200 (12.87ms) request_id=4f4faba45695 | event=request_completed | duration_ms=12.87
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=65b554d98d5c | event=request_start
+2026-09-02 14:05:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (30.64ms) request_id=65b554d98d5c | event=request_completed | duration_ms=30.64
+2026-09-02 14:05:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=2959b96db22f | event=request_start
+2026-09-02 14:05:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.97ms) request_id=2959b96db22f | event=request_completed | duration_ms=6.97
+2026-09-02 14:06:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=0c6d9f0e10b2 | event=request_start
+2026-09-02 14:06:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.90ms) request_id=0c6d9f0e10b2 | event=request_completed | duration_ms=3.9
+2026-09-02 14:06:15 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=d5b8a6198ff6 | event=request_start
+2026-09-02 14:06:15 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (66.34ms) request_id=d5b8a6198ff6 | event=request_completed | duration_ms=66.34
+2026-09-02 14:06:46 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=b1111f0bcf0f | event=request_start
+2026-09-02 14:06:46 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (21.59ms) request_id=b1111f0bcf0f | event=request_completed | duration_ms=21.59
+2026-09-02 14:06:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=0ace2a021db9 | event=request_start
+2026-09-02 14:06:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.57ms) request_id=0ace2a021db9 | event=request_completed | duration_ms=3.57
+2026-09-02 14:07:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=67331cce977b | event=request_start
+2026-09-02 14:07:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.88ms) request_id=67331cce977b | event=request_completed | duration_ms=3.88
+2026-09-02 14:07:16 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=b8094eb95c3d | event=request_start
+2026-09-02 14:07:16 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (36.20ms) request_id=b8094eb95c3d | event=request_completed | duration_ms=36.2
+2026-09-02 14:07:47 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=1ea51554e9a8 | event=request_start
+2026-09-02 14:07:47 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (29.84ms) request_id=1ea51554e9a8 | event=request_completed | duration_ms=29.84
+2026-09-02 14:07:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=b79bd6b9bd46 | event=request_start
+2026-09-02 14:07:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.33ms) request_id=b79bd6b9bd46 | event=request_completed | duration_ms=4.33
+2026-09-02 14:08:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=75935be70386 | event=request_start
+2026-09-02 14:08:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.70ms) request_id=75935be70386 | event=request_completed | duration_ms=3.7
+2026-09-02 14:08:18 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=bcd07dc20869 | event=request_start
+2026-09-02 14:08:18 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (24.34ms) request_id=bcd07dc20869 | event=request_completed | duration_ms=24.34
+2026-09-02 14:08:48 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=2f924df6bee4 | event=request_start
+2026-09-02 14:08:48 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (32.55ms) request_id=2f924df6bee4 | event=request_completed | duration_ms=32.55
+2026-09-02 14:08:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=c82b093a4e6e | event=request_start
+2026-09-02 14:08:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.82ms) request_id=c82b093a4e6e | event=request_completed | duration_ms=4.82
+2026-09-02 14:09:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=8c5241543baa | event=request_start
+2026-09-02 14:09:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.37ms) request_id=8c5241543baa | event=request_completed | duration_ms=4.37
+2026-09-02 14:09:19 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=757d1c6add52 | event=request_start
+2026-09-02 14:09:19 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (27.33ms) request_id=757d1c6add52 | event=request_completed | duration_ms=27.33
+2026-09-02 14:09:51 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=83d2e45e73af | event=request_start
+2026-09-02 14:09:51 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (28.14ms) request_id=83d2e45e73af | event=request_completed | duration_ms=28.14
+2026-09-02 14:09:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=c15a9ba5f929 | event=request_start
+2026-09-02 14:09:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.94ms) request_id=c15a9ba5f929 | event=request_completed | duration_ms=7.94
+2026-09-02 14:10:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=22cef4ca924c | event=request_start
+2026-09-02 14:10:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.97ms) request_id=22cef4ca924c | event=request_completed | duration_ms=3.97
+2026-09-02 14:10:22 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=cb11d8925a79 | event=request_start
+2026-09-02 14:10:22 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (23.68ms) request_id=cb11d8925a79 | event=request_completed | duration_ms=23.68
+2026-09-02 14:10:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=73c13d79ced7 | event=request_start
+2026-09-02 14:10:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (21.99ms) request_id=73c13d79ced7 | event=request_completed | duration_ms=21.99
+2026-09-02 14:10:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=b792d064c449 | event=request_start
+2026-09-02 14:10:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.81ms) request_id=b792d064c449 | event=request_completed | duration_ms=4.81
+2026-09-02 14:11:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=8bc6d2537870 | event=request_start
+2026-09-02 14:11:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.86ms) request_id=8bc6d2537870 | event=request_completed | duration_ms=3.86
+2026-09-02 14:11:24 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=e5af93794c14 | event=request_start
+2026-09-02 14:11:24 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (22.58ms) request_id=e5af93794c14 | event=request_completed | duration_ms=22.58
+2026-09-02 14:11:55 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=b09c14b87ca5 | event=request_start
+2026-09-02 14:11:55 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (28.08ms) request_id=b09c14b87ca5 | event=request_completed | duration_ms=28.08
+2026-09-02 14:12:00 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.41.123) request_id=be80276cc8eb | event=request_start
+2026-09-02 14:12:00 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.63ms) request_id=be80276cc8eb | event=request_completed | duration_ms=4.63
+2026-09-02 14:12:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=22f1ae44298a | event=request_start
+2026-09-02 14:12:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (39.40ms) request_id=22f1ae44298a | event=request_completed | duration_ms=39.4
+2026-09-02 14:12:10 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.41.123) request_id=505879996603 | event=request_start
+2026-09-02 14:12:10 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.09ms) request_id=505879996603 | event=request_completed | duration_ms=4.09
+2026-09-02 14:12:26 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=d58111c80db5 | event=request_start
+2026-09-02 14:12:26 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (21.82ms) request_id=d58111c80db5 | event=request_completed | duration_ms=21.82
+2026-09-02 14:13:00 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=29622c354fe5 | event=request_start
+2026-09-02 14:13:00 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (26.42ms) request_id=29622c354fe5 | event=request_completed | duration_ms=26.42
+2026-09-02 14:13:01 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.41.123) request_id=49eeb8c7c90e | event=request_start
+2026-09-02 14:13:01 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.90ms) request_id=49eeb8c7c90e | event=request_completed | duration_ms=3.9
+2026-09-02 14:13:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=102.89.47.83) request_id=cb94817f5441 | event=request_start
+2026-09-02 14:13:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (8.32ms) request_id=cb94817f5441 | event=request_completed | duration_ms=8.32
+2026-09-02 14:13:31 - app.middleware.request_logging - INFO - Request started: GET /api/v1/admin/analytics (client=102.89.47.83) request_id=8e243601c34b | event=request_start
+2026-09-02 14:13:31 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/admin/analytics -> 200 (40.17ms) request_id=8e243601c34b | event=request_completed | duration_ms=40.17

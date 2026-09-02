@@ -307,6 +307,60 @@ class PipelineOrchestrator:
         )
         return frame, result
 
+    async def pending_from_frame(
+        self,
+        frame_data: bytes,
+        direction: str = "entry",
+        request_id: Optional[str] = None,
+    ):
+        """Run ONLY the vehicle sub-stages (plate detection + OCR + vehicle
+        fingerprint) against a caller-supplied frame and return the frame plus a
+        PipelineResult for building a pending-vehicle record.
+
+        Used by the hybrid two-camera flow so that ANY device (system USB camera
+        or operator phone browser camera) can hand its vehicle capture off to
+        the other device for the face scan. Face recognition and any finalize
+        effects are intentionally skipped.
+        """
+        context = PipelineContext(
+            camera_id=None,
+            direction=direction,
+            require_face=False,
+            finalize=False,
+        )
+        if request_id:
+            context.request_id = request_id
+        context.add_timestamp("pipeline_start")
+
+        frame = FrameProcessor.read_bytes(frame_data)
+        if frame is None:
+            raise ContextValidationError("Failed to decode uploaded vehicle frame")
+        context.frame = frame
+        context.frame_metadata = {
+            "height": frame.shape[0],
+            "width": frame.shape[1],
+            "channels": frame.shape[2] if frame.ndim == 3 else 1,
+        }
+
+        stages = [self._detect_plates, self._crop_plates, self._recognize_plates]
+        if self.services.vehicle_fingerprint_service is not None:
+            stages.append(self._process_vehicle_fingerprint)
+        workflow = WorkflowEngine(stages)
+        stage_results = await workflow.execute(context)
+
+        result = PipelineResult(
+            success=all(r.success for r in stage_results) if stage_results else False,
+            request_id=context.request_id,
+            total_processing_time=0.0,
+            stage_results=stage_results,
+            detected_plates=self._build_detected_plates(context),
+            recognized_plates=self._build_recognized_plates(context),
+            warnings=context.warnings,
+            errors=context.errors,
+            vehicle_fingerprints=self._build_vehicle_fingerprints(context),
+        )
+        return frame, result
+
     async def execute(
         self, context: PipelineContext,
     ) -> PipelineResult:

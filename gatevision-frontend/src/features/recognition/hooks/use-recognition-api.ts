@@ -3,7 +3,7 @@ import { QUERY_KEYS } from "@/lib/api/query-client";
 import { processPipelineUploadApi, getPipelineStatusApi, getPipelineMetricsApi, processPipelineCameraApi, completePendingVehicleApi } from "@/services/api/pipeline.api";
 import { getRecognitionHistoryApi, getRecognitionResultApi, getModelStatusApi, deleteRecognitionHistoryEntryApi, clearRecognitionHistoryApi } from "@/services/api/recognition.api";
 import { startCameraApi, stopCameraApi, getCameraStatusApi, detectCamerasApi, type CameraStatus, type DetectCamerasResult } from "@/services/api/camera.api";
-import { getPendingVehicleApi, createPendingVehicleApi, type PendingVehicleInfo } from "@/services/api/pending.api";
+import { getPendingVehicleApi, createPendingVehicleApi, createPendingFromFrameApi, type PendingVehicleInfo } from "@/services/api/pending.api";
 import { mapPipelineResult, mapHistoryEntry } from "../api/mapper";
 import type { RecognitionResult, RecognitionHistoryEntry } from "../types";
 import type { ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiModelStatus } from "../types/api";
@@ -182,6 +182,19 @@ export function useCreatePendingVehicle() {
     onSuccess: (pending, direction) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PIPELINE.PENDING(direction) });
       queryClient.setQueryData(QUERY_KEYS.PIPELINE.PENDING(direction), pending);
+    },
+  });
+}
+
+export function useCreatePendingFromFrame() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { frame: File; direction: "entry" | "exit" }): Promise<PendingVehicleInfo> => {
+      return createPendingFromFrameApi(args.frame, args.direction);
+    },
+    onSuccess: (pending, args) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PIPELINE.PENDING(args.direction) });
+      queryClient.setQueryData(QUERY_KEYS.PIPELINE.PENDING(args.direction), pending);
     },
   });
 }
