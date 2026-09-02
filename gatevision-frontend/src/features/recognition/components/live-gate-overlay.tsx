@@ -30,7 +30,12 @@ interface LiveGateOverlayProps {
 
 const MAX_FACE_ATTEMPTS = 3;
 const WELCOME_TEXT = "Welcome to UNILAG. Please stop at the gate and look at the camera.";
+const EXIT_WELCOME_TEXT = "Thank you for visiting. Please stop at the exit gate and look at the camera.";
 const GRANT_TEXT = "Access granted. You are welcome to UNILAG.";
+
+function getWelcomeText(direction: "entry" | "exit"): string {
+  return direction === "exit" ? EXIT_WELCOME_TEXT : WELCOME_TEXT;
+}
 
 function speak(text: string, muted: boolean) {
   if (muted || typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -202,7 +207,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const forceClose = useForceCloseSession();
 
   const [phase, setPhase] = useState<Phase>("welcome");
-  const [narrative, setNarrative] = useState(WELCOME_TEXT);
+  const [narrative, setNarrative] = useState(getWelcomeText(direction));
   const [result, setResult] = useState<RecognitionResult | null>(null);
   const [apiResult, setApiResult] = useState<ApiPipelineResult | null>(null);
   const [attempts, setAttempts] = useState(0);
@@ -258,9 +263,9 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   useEffect(() => {
     if (!welcomeSpokenRef.current) {
       welcomeSpokenRef.current = true;
-      speak(WELCOME_TEXT, muted);
+      speak(getWelcomeText(direction), muted);
     }
-  }, [muted]);
+  }, [muted, direction]);
 
   const checkPendingVehicle = useCallback(async () => {
     try {
