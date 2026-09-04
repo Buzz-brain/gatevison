@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     OCR_LANGUAGES: str = "en"
     OCR_GPU: str = "auto"
-    OCR_MIN_CONFIDENCE: float = 0.45
+    OCR_MIN_CONFIDENCE: float = 0.30
     OCR_MAX_IMAGE_DIM: int = 480
 
     # OCR performance tuning

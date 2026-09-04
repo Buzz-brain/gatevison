@@ -20,7 +20,7 @@ import { mapPipelineResult } from "../api/mapper";
 import type { RecognitionResult } from "../types";
 import type { ApiPipelineResult } from "../types/api";
 
-type Phase = "welcome" | "scanning" | "face_scan" | "face_validating" | "complete" | "handoff" | "error";
+type Phase = "welcome" | "scanning" | "vehicle_ready" | "face_scan" | "face_validating" | "complete" | "handoff" | "error";
 
 interface LiveGateOverlayProps {
   onClose: () => void;
@@ -364,7 +364,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   }, [startCamera]);
 
   useEffect(() => {
-    if (phase === "face_scan" && !streamRef.current) {
+    if ((phase === "face_scan" || phase === "vehicle_ready") && !streamRef.current) {
       void startCamera();
     }
   }, [phase, startCamera]);
@@ -475,14 +475,17 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         if (decision === "granted" && !gateRejected) {
           vehicleFileRef.current = file;
           const plate = api.ocr?.cleaned_text || api.ocr?.raw_text || "";
-          setPhase("face_scan");
+          setPhase("vehicle_ready");
           setFacePreviewUrl(null);
           setFaceDenied(false);
           const msg = plate
-            ? `Vehicle identified as ${plate}. Now please look at the face camera.`
-            : "Vehicle scanned. Now please look at the face camera.";
+            ? `Vehicle identified as ${plate}. Select where to complete identity.`
+            : "Vehicle scanned. Select where to complete identity.";
           setNarrative(msg);
-          speak(msg, mutedRef.current);
+          speak(
+            msg,
+            mutedRef.current,
+          );
         } else {
           setPhase("complete");
           const mapped = mapPipelineResult(api);
@@ -545,6 +548,39 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       setNarrative("Sorry, I could not record the vehicle. Please try again.");
     }
   }, [captureFrame, createPendingMutation, direction]);
+
+  const handleSendScannedVehicleToDevice = useCallback(async () => {
+    primeAudio();
+    const file = vehicleFileRef.current;
+    if (!file) return;
+    const seq = ++journeySeqRef.current;
+    setHandoffError(null);
+    setPhase("scanning");
+    setNarrative("Recording the vehicle...");
+    try {
+      const pending = await createPendingMutation.mutateAsync({ frame: file, direction });
+      if (journeySeqRef.current !== seq) return;
+      const plate = pending.plate_text;
+      vehicleFileRef.current = null;
+      setHandoffPending(pending);
+      setPhase("handoff");
+      const msg = plate
+        ? `Vehicle ${plate} recorded. Complete identity on the other device.`
+        : "Vehicle recorded. Complete identity on the other device.";
+      setNarrative(msg);
+      speak(
+        "Vehicle recorded. Open the gate app on the other device to complete identity.",
+        mutedRef.current,
+      );
+    } catch (e) {
+      if (journeySeqRef.current !== seq) return;
+      journeySeqRef.current++;
+      setPhase("vehicle_ready");
+      const msg = e instanceof Error ? e.message : "Could not record the vehicle.";
+      setHandoffError(msg);
+      setNarrative("Sorry, I could not record the vehicle. You can still scan the face here.");
+    }
+  }, [createPendingMutation, direction]);
 
   const finishFaceDenied = useCallback(() => {
     journeySeqRef.current++;
@@ -862,6 +898,29 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
               >
                 {createPendingMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}
                 {createPendingMutation.isPending ? "Recording..." : "Send to Other Device"}
+              </Button>
+            </>
+          )}
+
+          {phase === "vehicle_ready" && (
+            <>
+              <Button size="lg" onClick={handleFaceCapture} className="h-12 px-7 text-base gap-2">
+                <Camera className="h-5 w-5" />
+                Scan Face Here
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={handleSendScannedVehicleToDevice}
+                disabled={createPendingMutation.isPending}
+                className="h-12 px-7 text-base gap-2"
+                title="Record the scanned vehicle and complete its identity on the other device"
+              >
+                {createPendingMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}
+                {createPendingMutation.isPending ? "Recording..." : "Send to Other Device"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={resetKiosk}>
+                Back to Start
               </Button>
             </>
           )}

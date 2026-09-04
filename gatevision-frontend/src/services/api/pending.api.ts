@@ -57,7 +57,7 @@ export async function createPendingFromFrameApi(
     const response = await api.post<{ success: boolean; data: { pending_vehicle: PendingVehicleInfo } | { message?: string }; message: string }>(
       ENDPOINTS.PIPELINE.PENDING_CREATE_FROM_FRAME,
       form,
-      { params: { direction } },
+      { params: { direction }, headers: { "Content-Type": "multipart/form-data" } },
     );
     const body = response.data;
     const pending = body.data as { pending_vehicle?: PendingVehicleInfo };

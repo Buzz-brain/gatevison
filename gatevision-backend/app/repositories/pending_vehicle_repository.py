@@ -24,17 +24,22 @@ class PendingVehicleRepository:
         if include_expired:
             return await PendingVehicle.find_one(
                 PendingVehicle.direction == direction,
-                sort=-PendingVehicle.created_at,
+                sort=[-PendingVehicle.created_at],
             )
         now = datetime.now(timezone.utc)
         return await PendingVehicle.find_one(
-            (PendingVehicle.direction == direction)
-            & (
-                (PendingVehicle.expires_at.is_not(None))
-                & (PendingVehicle.expires_at > now)
-                | (PendingVehicle.expires_at.is_null(None))
-            ),
-            sort=-PendingVehicle.created_at,
+            {
+                "$and": [
+                    {"direction": direction},
+                    {
+                        "$or": [
+                            {"expires_at": None},
+                            {"expires_at": {"$gt": now}},
+                        ]
+                    },
+                ]
+            },
+            sort=[-PendingVehicle.created_at],
         )
 
     @staticmethod
@@ -48,8 +53,5 @@ class PendingVehicleRepository:
     @staticmethod
     async def delete_expired() -> int:
         now = datetime.now(timezone.utc)
-        result = await PendingVehicle.find(
-            (PendingVehicle.expires_at.is_not(None))
-            & (PendingVehicle.expires_at <= now)
-        ).delete()
+        result = await PendingVehicle.find(PendingVehicle.expires_at <= now).delete()
         return result.deleted_count if result is not None else 0
