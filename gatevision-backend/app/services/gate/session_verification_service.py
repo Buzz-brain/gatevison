@@ -136,6 +136,18 @@ class SessionVerificationService:
         )
 
         if not plate_found:
+            if not plate_text:
+                reason = "No plate recognized"
+            elif validation_status not in (None, "valid", "validated"):
+                reason = (
+                    f"Plate '{plate_text}' does not match a recognized "
+                    f"Nigerian plate format"
+                )
+            else:
+                reason = (
+                    f"Plate read but confidence too low "
+                    f"({plate_confidence:.0%}, min {self._plate_min:.0%})"
+                )
             return SessionVerificationResult(
                 plate_found=False,
                 plate_text=plate_text,
@@ -146,10 +158,7 @@ class SessionVerificationService:
                 vehicle_confidence=vehicle_conf,
                 capture_confidence=capture_confidence,
                 decision="DENY" if not plate_text else "MANUAL_REVIEW",
-                reason=(
-                    "No plate recognized" if not plate_text
-                    else "Plate unreadable or below confidence threshold"
-                ),
+                reason=reason,
                 triggered_rules=rules,
             )
 

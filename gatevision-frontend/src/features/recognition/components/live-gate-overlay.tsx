@@ -1095,15 +1095,19 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                               ? "Face not part of this check"
                               : faceUnusable
                                 ? reason
-                                : apiResult.face?.match_source === "session" && apiResult.face?.similarity
-                                  ? `${apiResult.face.similarity.toFixed(0)}% match with entry driver`
-                                  : apiResult.face?.similarity
-                                    ? `${apiResult.face.similarity.toFixed(0)}% match`
-                                    : apiResult.gate?.success === false && apiResult.gate?.error
-                                      ? apiResult.gate.error
-                                      : direction === "entry"
-                                        ? "Face captured — no record to compare on entry"
-                                        : "No comparable identity stored for this exit"}
+                                : !apiResult.face?.detected
+                                  ? direction === "entry"
+                                    ? "No face captured"
+                                    : "No face captured"
+                                  : apiResult.face?.match_source === "session" && apiResult.face?.similarity
+                                    ? `${apiResult.face.similarity.toFixed(0)}% match with entry driver`
+                                    : apiResult.face?.similarity
+                                      ? `${apiResult.face.similarity.toFixed(0)}% match`
+                                      : apiResult.gate?.success === false && apiResult.gate?.error
+                                        ? apiResult.gate.error
+                                        : direction === "entry"
+                                          ? "Face captured — no record to compare on entry"
+                                          : "No comparable identity stored for this exit"}
                         </p>
                       </>
                     );
