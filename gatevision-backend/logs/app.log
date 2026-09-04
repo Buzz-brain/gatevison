@@ -45533,3 +45533,73 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-09-04 14:12:35 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=196.220.242.6) request_id=8431951f72e0 | event=request_start
 2026-09-04 14:12:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.22ms) request_id=8431951f72e0 | event=request_completed | duration_ms=7.22
 2026-09-04 14:13:00 - app.database.connection - INFO - Database connection closed
+2026-09-04 14:13:34 - app.database.connection - INFO - Database connected successfully
+2026-09-04 14:13:34 - app.services.ai.warmup - INFO - Warm-up: starting plate detector + OCR request_id=startup | event=warmup_started
+2026-09-04 14:13:34 - app.services.ai.plate_detection.model_loader - INFO - Loading YOLO model from: models/license_plate_detector.pt
+2026-09-04 14:13:34 - app.services.ai.registry.model_registry - INFO - Registered model 'yolo' (object_detection) on cpu
+2026-09-04 14:13:34 - app.services.ai.plate_detection.model_loader - INFO - Model loaded: device=cpu, version=8.3.87
+2026-09-04 14:13:34 - app.services.ai.plate_detection.model_loader - INFO - YOLO model classes: {0: 'license_plate'} | event=model_classes
+2026-09-04 14:13:34 - app.services.ai.plate_detection.model_loader - INFO - YOLO plate classes: ['license_plate'] | event=model_plate_classes
+2026-09-04 14:13:35 - app.services.ai.warmup - INFO - Warm-up: plate detector ready (772.79ms) request_id=startup | event=warmup_model_ready | duration_ms=772.79 | model=plate_detector
+2026-09-04 14:13:35 - app.services.ai.ocr.ocr_loader - INFO - Loading EasyOCR reader: langs=['en'], gpu=False
+2026-09-04 14:13:35 - easyocr.easyocr - WARNING - Using CPU. Note: This module is much faster with a GPU.
+2026-09-04 14:13:42 - app.services.ai.registry.model_registry - INFO - Registered model 'easyocr' (ocr) on cpu
+2026-09-04 14:13:42 - app.services.ai.ocr.ocr_loader - INFO - OCR reader loaded: device=cpu, langs=['en']
+2026-09-04 14:13:42 - app.services.ai.warmup - INFO - Warm-up: OCR reader ready (7099.90ms) request_id=startup | event=warmup_model_ready | duration_ms=7099.9 | model=ocr
+2026-09-04 14:13:45 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=127.0.0.1) request_id=45ea5037ba9a | event=request_start
+2026-09-04 14:13:45 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\HOP\Desktop\gatevison\gatevision-backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-09-04 14:13:46 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-04 14:13:46 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (546.06ms) request_id=45ea5037ba9a | event=request_completed | duration_ms=546.06
+2026-09-04 14:13:50 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=127.0.0.1) request_id=4fb56ee02666 | event=request_start
+2026-09-04 14:13:50 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 200 (22.56ms) request_id=4fb56ee02666 | event=request_completed | duration_ms=22.56
+2026-09-04 14:13:55 - app.middleware.request_logging - INFO - Request started: POST /api/v1/pipeline/process/upload (client=127.0.0.1) request_id=06a49f965e79 | event=request_start
+2026-09-04 14:13:55 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 14:13:55 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 14:13:55 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline AI services configured | event=pipeline_services | detection=DetectionService | ocr=OcrService | face=enabled(model_ready) | vehicle=enabled(model_ready) | decision=DecisionEngine | gate_workflow=WorkflowService
+2026-09-04 14:13:55 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline started request_id=06a49f965e79 | event=pipeline_started
+2026-09-04 14:13:55 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _capture_frame (0.00ms) request_id=06a49f965e79 | event=stage_completed | stage=_capture_frame | duration_ms=0.0
+2026-09-04 14:13:55 - gatevision.detection - INFO - Detection started | source=unknown
+2026-09-04 14:13:56 - app.services.ai.camera.storage_service - INFO - Image saved: C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads\plates\plate_0.966_b0472db0.jpg
+2026-09-04 14:13:56 - app.services.ai.camera.storage_service - INFO - Image saved: C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads\plates\plate_0.512_ab7e3942.jpg
+2026-09-04 14:13:56 - gatevision.detection - INFO - Detection completed | plates=2 | time_ms=400.02
+2026-09-04 14:13:56 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _detect_plates (428.66ms) request_id=06a49f965e79 | event=stage_completed | stage=_detect_plates | duration_ms=428.66
+2026-09-04 14:13:56 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _crop_plates (0.07ms) request_id=06a49f965e79 | event=stage_completed | stage=_crop_plates | duration_ms=0.07
+2026-09-04 14:13:56 - app.services.ai.ocr.plate_reader - INFO - OCR inference | event=ocr_inference | crop_index=0 | input_size=67x38 | prepared_size=67x38 | results=1 | top='ABJZ5RD' | elapsed_ms=471
+2026-09-04 14:13:56 - app.services.ai.ocr.plate_reader - INFO - OCR inference | event=ocr_inference | crop_index=1 | input_size=67x16 | prepared_size=67x16 | results=0 | top=None | elapsed_ms=129
+2026-09-04 14:13:56 - app.services.ai.orchestrator.orchestrator - INFO - OCR result: 06a49f965e79 request_id=06a49f965e79 | event=ocr_crop_result | crop_index=0 | crop_size=67x38 | detector_conf=0.966 | text='ABJZ5RD' | ocr_conf=0.536 | validation=valid
+2026-09-04 14:13:56 - app.services.ai.orchestrator.orchestrator - INFO - OCR result: 06a49f965e79 request_id=06a49f965e79 | event=ocr_crop_result | crop_index=1 | crop_size=67x16 | detector_conf=0.512 | text='' | ocr_conf=0.000 | validation=unreadable
+2026-09-04 14:13:56 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_plates (603.07ms) request_id=06a49f965e79 | event=stage_completed | stage=_recognize_plates | duration_ms=603.07
+2026-09-04 14:13:56 - app.services.ai.face_recognition.recognition_logger - INFO - Face recognition started event=face_recognition_started
+2026-09-04 14:13:56 - app.services.ai.face_recognition.face_loader - INFO - Loading InsightFace: model=buffalo_l, ctx_id=-1
+2026-09-04 14:14:02 - app.services.ai.registry.model_registry - INFO - Registered model 'insightface' (face_recognition) on cpu
+2026-09-04 14:14:02 - app.services.ai.face_recognition.face_loader - INFO - Face model loaded: device=cpu, model=buffalo_l
+2026-09-04 14:14:03 - app.services.ai.face_recognition.recognition_logger - WARNING - No face detected in image event=no_face_detected
+2026-09-04 14:14:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_faces (6608.68ms) request_id=06a49f965e79 | event=stage_completed | stage=_recognize_faces | duration_ms=6608.68
+2026-09-04 14:14:03 - app.services.ai.vehicle_fingerprint.vehicle_loader - INFO - Loading vehicle model: resnet50 on cpu
+2026-09-04 14:14:04 - app.services.ai.registry.model_registry - INFO - Registered model 'resnet50' (vehicle_fingerprint) on cpu
+2026-09-04 14:14:04 - app.services.ai.vehicle_fingerprint.vehicle_loader - INFO - Vehicle model loaded: device=cpu, model=resnet50, dim=2048
+2026-09-04 14:14:05 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_vehicle_fingerprint (1558.21ms) request_id=06a49f965e79 | event=stage_completed | stage=_process_vehicle_fingerprint | duration_ms=1558.21
+2026-09-04 14:14:05 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _evaluate_decision (0.72ms) request_id=06a49f965e79 | event=stage_completed | stage=_evaluate_decision | duration_ms=0.72
+2026-09-04 14:14:05 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _persist_decision (0.01ms) request_id=06a49f965e79 | event=stage_completed | stage=_persist_decision | duration_ms=0.01
+2026-09-04 14:14:05 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_gate_workflow (0.01ms) request_id=06a49f965e79 | event=stage_completed | stage=_process_gate_workflow | duration_ms=0.01
+2026-09-04 14:14:05 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _aggregate_results (0.01ms) request_id=06a49f965e79 | event=stage_completed | stage=_aggregate_results | duration_ms=0.01
+2026-09-04 14:14:05 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline succeeded (9222.13ms) request_id=06a49f965e79 | event=pipeline_completed
+2026-09-04 14:14:05 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline summary: total=9222.13ms stages={'_capture_frame': 0.0, '_detect_plates': 428.66, '_crop_plates': 0.07, '_recognize_plates': 603.07, '_recognize_faces': 6608.68, '_process_vehicle_fingerprint': 1558.21, '_evaluate_decision': 0.72, '_persist_decision': 0.01, '_process_gate_workflow': 0.01, '_aggregate_results': 0.01} decision=GRANT recognized=1 errors=0 request_id=06a49f965e79 | event=pipeline_summary | decision=GRANT
+2026-09-04 14:14:05 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/pipeline/process/upload -> 200 (9271.43ms) request_id=06a49f965e79 | event=request_completed | duration_ms=9271.43
+2026-09-04 14:14:35 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=196.220.242.6) request_id=687a70654a31 | event=request_start
+2026-09-04 14:14:36 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-04 14:14:36 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (312.27ms) request_id=687a70654a31 | event=request_completed | duration_ms=312.27
+2026-09-04 14:14:46 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=387c3e5f1dd7 | event=request_start
+2026-09-04 14:14:46 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.20ms) request_id=387c3e5f1dd7 | event=request_completed | duration_ms=5.2
+2026-09-04 14:15:06 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=196.220.242.6) request_id=b3f072bcab09 | event=request_start
+2026-09-04 14:15:06 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 200 (5.92ms) request_id=b3f072bcab09 | event=request_completed | duration_ms=5.92
+2026-09-04 14:15:16 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=196.220.242.6) request_id=5541d8a6b58e | event=request_start
+2026-09-04 14:15:16 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-04 14:15:16 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (406.66ms) request_id=5541d8a6b58e | event=request_completed | duration_ms=406.66
+2026-09-04 14:15:36 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=196.220.242.6) request_id=f184c029d2c3 | event=request_start
+2026-09-04 14:15:36 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (8.03ms) request_id=f184c029d2c3 | event=request_completed | duration_ms=8.03
