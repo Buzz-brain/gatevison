@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/store/ui-store";
 import { useGateOperations } from "./hooks/use-gate-operations";
-import { OperatorReadiness } from "./components/operator-readiness";
-import { OperatorPipeline } from "./components/operator-pipeline";
 import { VehiclesInside } from "./components/vehicles-inside";
 import { SessionMonitor } from "./components/session-monitor";
 
@@ -121,25 +119,13 @@ function GateOperationsPage() {
         }
       />
 
-      {/* 1. System Health */}
+      {/* 1. Occupancy */}
       <section>
-        <SectionTitle hint="Live">System Health</SectionTitle>
-        <OperatorReadiness gates={ops.gates} />
+        <SectionTitle>Occupancy</SectionTitle>
+        <VehiclesInside sessions={ops.sessions} />
       </section>
 
-      {/* 2. Live Pipeline + Vehicles Inside */}
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <SectionTitle>Live Pipeline</SectionTitle>
-          <OperatorPipeline decisionFlow={ops.decisionFlow} />
-        </div>
-        <div>
-          <SectionTitle>Occupancy</SectionTitle>
-          <VehiclesInside sessions={ops.sessions} />
-        </div>
-      </section>
-
-      {/* 3. Active Sessions */}
+      {/* 2. Active Sessions */}
       <section>
         <SectionTitle>Active Sessions</SectionTitle>
         <SessionMonitor sessions={ops.sessions} />

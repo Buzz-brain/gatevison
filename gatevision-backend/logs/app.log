@@ -40889,3 +40889,240 @@ Traceback (most recent call last):
 AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-09-04 08:48:54 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
 2026-09-04 08:48:54 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (591.30ms) request_id=c89fb52ae454 | event=request_completed | duration_ms=591.3
+2026-09-04 08:49:33 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=127.0.0.1) request_id=7399a93f0de8 | event=request_start
+2026-09-04 08:49:33 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 200 (67.72ms) request_id=7399a93f0de8 | event=request_completed | duration_ms=67.72
+2026-09-04 08:49:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=58862d77318a | event=request_start
+2026-09-04 08:49:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (17.71ms) request_id=58862d77318a | event=request_completed | duration_ms=17.71
+2026-09-04 08:50:03 - app.middleware.request_logging - INFO - Request started: POST /api/v1/pipeline/process/upload (client=127.0.0.1) request_id=c30ef13f56a2 | event=request_start
+2026-09-04 08:50:03 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 08:50:03 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 08:50:03 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline AI services configured | event=pipeline_services | detection=DetectionService | ocr=OcrService | face=enabled(model_ready) | vehicle=enabled(model_ready) | decision=DecisionEngine | gate_workflow=WorkflowService
+2026-09-04 08:50:03 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline started request_id=c30ef13f56a2 | event=pipeline_started
+2026-09-04 08:50:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _capture_frame (0.00ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_capture_frame | duration_ms=0.0
+2026-09-04 08:50:03 - gatevision.detection - INFO - Detection started | source=unknown
+2026-09-04 08:50:04 - app.services.ai.camera.storage_service - INFO - Image saved: C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads\plates\plate_0.501_9ae094c9.jpg
+2026-09-04 08:50:04 - gatevision.detection - INFO - Detection completed | plates=1 | time_ms=614.32
+2026-09-04 08:50:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _detect_plates (641.93ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_detect_plates | duration_ms=641.93
+2026-09-04 08:50:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _crop_plates (0.11ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_crop_plates | duration_ms=0.11
+2026-09-04 08:50:04 - app.services.ai.ocr.plate_reader - INFO - OCR inference | event=ocr_inference | crop_index=0 | input_size=87x42 | prepared_size=87x42 | results=1 | top='APP.971KS' | elapsed_ms=731
+2026-09-04 08:50:04 - app.services.ai.orchestrator.orchestrator - INFO - OCR result: c30ef13f56a2 request_id=c30ef13f56a2 | event=ocr_crop_result | crop_index=0 | crop_size=87x42 | detector_conf=0.501 | text='APP.971KS' | ocr_conf=0.835 | validation=valid
+2026-09-04 08:50:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_plates (746.94ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_recognize_plates | duration_ms=746.94
+2026-09-04 08:50:04 - app.services.ai.face_recognition.recognition_logger - INFO - Face recognition started event=face_recognition_started
+2026-09-04 08:50:04 - app.services.ai.face_recognition.face_loader - INFO - Loading InsightFace: model=buffalo_l, ctx_id=-1
+2026-09-04 08:50:11 - app.services.ai.registry.model_registry - INFO - Registered model 'insightface' (face_recognition) on cpu
+2026-09-04 08:50:11 - app.services.ai.face_recognition.face_loader - INFO - Face model loaded: device=cpu, model=buffalo_l
+2026-09-04 08:50:11 - app.services.ai.face_recognition.recognition_logger - WARNING - No face detected in image event=no_face_detected
+2026-09-04 08:50:11 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_faces (6803.87ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_recognize_faces | duration_ms=6803.87
+2026-09-04 08:50:11 - app.services.ai.vehicle_fingerprint.vehicle_loader - INFO - Loading vehicle model: resnet50 on cpu
+2026-09-04 08:50:12 - app.services.ai.registry.model_registry - INFO - Registered model 'resnet50' (vehicle_fingerprint) on cpu
+2026-09-04 08:50:12 - app.services.ai.vehicle_fingerprint.vehicle_loader - INFO - Vehicle model loaded: device=cpu, model=resnet50, dim=2048
+2026-09-04 08:50:13 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_vehicle_fingerprint (1635.58ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_process_vehicle_fingerprint | duration_ms=1635.58
+2026-09-04 08:50:13 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _evaluate_decision (0.84ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_evaluate_decision | duration_ms=0.84
+2026-09-04 08:50:13 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _persist_decision (0.00ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_persist_decision | duration_ms=0.0
+2026-09-04 08:50:13 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_gate_workflow (0.00ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_process_gate_workflow | duration_ms=0.0
+2026-09-04 08:50:13 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _aggregate_results (0.00ms) request_id=c30ef13f56a2 | event=stage_completed | stage=_aggregate_results | duration_ms=0.0
+2026-09-04 08:50:13 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline succeeded (9834.09ms) request_id=c30ef13f56a2 | event=pipeline_completed
+2026-09-04 08:50:13 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline summary: total=9834.09ms stages={'_capture_frame': 0.0, '_detect_plates': 641.93, '_crop_plates': 0.11, '_recognize_plates': 746.94, '_recognize_faces': 6803.87, '_process_vehicle_fingerprint': 1635.58, '_evaluate_decision': 0.84, '_persist_decision': 0.0, '_process_gate_workflow': 0.0, '_aggregate_results': 0.0} decision=GRANT recognized=1 errors=0 request_id=c30ef13f56a2 | event=pipeline_summary | decision=GRANT
+2026-09-04 08:50:13 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/pipeline/process/upload -> 200 (9952.28ms) request_id=c30ef13f56a2 | event=request_completed | duration_ms=9952.28
+2026-09-04 08:50:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=1340719e5f53 | event=request_start
+2026-09-04 08:50:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (18.91ms) request_id=1340719e5f53 | event=request_completed | duration_ms=18.91
+2026-09-04 08:51:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=9c817e8f6269 | event=request_start
+2026-09-04 08:51:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.17ms) request_id=9c817e8f6269 | event=request_completed | duration_ms=7.17
+2026-09-04 08:52:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=4d5085d5b9e1 | event=request_start
+2026-09-04 08:52:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (10.02ms) request_id=4d5085d5b9e1 | event=request_completed | duration_ms=10.02
+2026-09-04 08:53:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=b7d265a0ffbc | event=request_start
+2026-09-04 08:53:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.28ms) request_id=b7d265a0ffbc | event=request_completed | duration_ms=5.28
+2026-09-04 08:54:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=c7519a54266b | event=request_start
+2026-09-04 08:54:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (14.14ms) request_id=c7519a54266b | event=request_completed | duration_ms=14.14
+2026-09-04 08:55:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=c4447a391060 | event=request_start
+2026-09-04 08:55:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.26ms) request_id=c4447a391060 | event=request_completed | duration_ms=5.26
+2026-09-04 08:56:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=06aa350516ba | event=request_start
+2026-09-04 08:56:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.54ms) request_id=06aa350516ba | event=request_completed | duration_ms=7.54
+2026-09-04 08:56:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=5f2fdf7acbde | event=request_start
+2026-09-04 08:56:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (5.54ms) request_id=5f2fdf7acbde | event=request_completed | duration_ms=5.54
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=53221a606dee | event=request_start
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=b658630daffc | event=request_start
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=6770df52b594 | event=request_start
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (35.85ms) request_id=b658630daffc | event=request_completed | duration_ms=35.85
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (52.31ms) request_id=6770df52b594 | event=request_completed | duration_ms=52.31
+2026-09-04 08:56:52 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (403.12ms) request_id=53221a606dee | event=request_completed | duration_ms=403.12
+2026-09-04 08:56:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=1630a44d73cd | event=request_start
+2026-09-04 08:56:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (7.03ms) request_id=1630a44d73cd | event=request_completed | duration_ms=7.03
+2026-09-04 08:56:56 - app.middleware.request_logging - INFO - Request started: GET /api/v1/pipeline/pending (client=127.0.0.1) request_id=1227b8cd4ceb | event=request_start
+2026-09-04 08:56:56 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/pipeline/pending -> 200 (34.84ms) request_id=1227b8cd4ceb | event=request_completed | duration_ms=34.84
+2026-09-04 08:56:57 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=baeece4f0820 | event=request_start
+2026-09-04 08:56:57 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (13.20ms) request_id=baeece4f0820 | event=request_completed | duration_ms=13.2
+2026-09-04 08:57:01 - app.middleware.request_logging - INFO - Request started: POST /api/v1/pipeline/process/upload (client=127.0.0.1) request_id=b9622af402d5 | event=request_start
+2026-09-04 08:57:01 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 08:57:01 - app.services.ai.camera.storage_service - INFO - Storage directories ensured at C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads
+2026-09-04 08:57:01 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline AI services configured | event=pipeline_services | detection=DetectionService | ocr=OcrService | face=enabled(model_ready) | vehicle=enabled(model_ready) | decision=DecisionEngine | gate_workflow=WorkflowService
+2026-09-04 08:57:01 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline started request_id=b9622af402d5 | event=pipeline_started
+2026-09-04 08:57:01 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _capture_frame (0.00ms) request_id=b9622af402d5 | event=stage_completed | stage=_capture_frame | duration_ms=0.0
+2026-09-04 08:57:01 - gatevision.detection - INFO - Detection started | source=unknown
+2026-09-04 08:57:02 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=7a57713f97c5 | event=request_start
+2026-09-04 08:57:02 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (12.06ms) request_id=7a57713f97c5 | event=request_completed | duration_ms=12.06
+2026-09-04 08:57:02 - app.services.ai.camera.storage_service - INFO - Image saved: C:\Users\HOP\Desktop\gatevison\gatevision-backend\uploads\plates\plate_0.501_4233ebf7.jpg
+2026-09-04 08:57:02 - gatevision.detection - INFO - Detection completed | plates=1 | time_ms=751.71
+2026-09-04 08:57:02 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _detect_plates (763.41ms) request_id=b9622af402d5 | event=stage_completed | stage=_detect_plates | duration_ms=763.41
+2026-09-04 08:57:02 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _crop_plates (0.08ms) request_id=b9622af402d5 | event=stage_completed | stage=_crop_plates | duration_ms=0.08
+2026-09-04 08:57:03 - app.services.ai.ocr.plate_reader - INFO - OCR inference | event=ocr_inference | crop_index=0 | input_size=87x42 | prepared_size=87x42 | results=1 | top='APP.971KS' | elapsed_ms=615
+2026-09-04 08:57:03 - app.services.ai.orchestrator.orchestrator - INFO - OCR result: b9622af402d5 request_id=b9622af402d5 | event=ocr_crop_result | crop_index=0 | crop_size=87x42 | detector_conf=0.501 | text='APP.971KS' | ocr_conf=0.835 | validation=valid
+2026-09-04 08:57:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_plates (616.68ms) request_id=b9622af402d5 | event=stage_completed | stage=_recognize_plates | duration_ms=616.68
+2026-09-04 08:57:03 - app.services.ai.face_recognition.recognition_logger - INFO - Face recognition started event=face_recognition_started
+2026-09-04 08:57:03 - app.services.ai.face_recognition.recognition_logger - WARNING - No face detected in image event=no_face_detected
+2026-09-04 08:57:03 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _recognize_faces (585.74ms) request_id=b9622af402d5 | event=stage_completed | stage=_recognize_faces | duration_ms=585.74
+2026-09-04 08:57:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_vehicle_fingerprint (571.35ms) request_id=b9622af402d5 | event=stage_completed | stage=_process_vehicle_fingerprint | duration_ms=571.35
+2026-09-04 08:57:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _evaluate_decision (0.79ms) request_id=b9622af402d5 | event=stage_completed | stage=_evaluate_decision | duration_ms=0.79
+2026-09-04 08:57:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _persist_decision (0.01ms) request_id=b9622af402d5 | event=stage_completed | stage=_persist_decision | duration_ms=0.01
+2026-09-04 08:57:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _process_gate_workflow (0.00ms) request_id=b9622af402d5 | event=stage_completed | stage=_process_gate_workflow | duration_ms=0.0
+2026-09-04 08:57:04 - app.services.ai.orchestrator.workflow - INFO - Stage completed: _aggregate_results (0.00ms) request_id=b9622af402d5 | event=stage_completed | stage=_aggregate_results | duration_ms=0.0
+2026-09-04 08:57:04 - app.services.ai.orchestrator.execution_logger - INFO - Pipeline succeeded (2557.99ms) request_id=b9622af402d5 | event=pipeline_completed
+2026-09-04 08:57:04 - app.services.ai.orchestrator.orchestrator - INFO - Pipeline summary: total=2557.99ms stages={'_capture_frame': 0.0, '_detect_plates': 763.41, '_crop_plates': 0.08, '_recognize_plates': 616.68, '_recognize_faces': 585.74, '_process_vehicle_fingerprint': 571.35, '_evaluate_decision': 0.79, '_persist_decision': 0.01, '_process_gate_workflow': 0.0, '_aggregate_results': 0.0} decision=GRANT recognized=1 errors=0 request_id=b9622af402d5 | event=pipeline_summary | decision=GRANT
+2026-09-04 08:57:04 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/pipeline/process/upload -> 200 (2684.43ms) request_id=b9622af402d5 | event=request_completed | duration_ms=2684.43
+2026-09-04 08:57:07 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=a6f7cf1ac533 | event=request_start
+2026-09-04 08:57:07 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (4.59ms) request_id=a6f7cf1ac533 | event=request_completed | duration_ms=4.59
+2026-09-04 08:57:07 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=f333c70b12a2 | event=request_start
+2026-09-04 08:57:07 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (60.62ms) request_id=f333c70b12a2 | event=request_completed | duration_ms=60.62
+2026-09-04 08:57:12 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=46541d46b36d | event=request_start
+2026-09-04 08:57:12 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (5.97ms) request_id=46541d46b36d | event=request_completed | duration_ms=5.97
+2026-09-04 08:57:18 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=1f47375cb0d5 | event=request_start
+2026-09-04 08:57:18 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.69ms) request_id=1f47375cb0d5 | event=request_completed | duration_ms=10.69
+2026-09-04 08:57:22 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=d90521b80ddb | event=request_start
+2026-09-04 08:57:22 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (10.70ms) request_id=d90521b80ddb | event=request_completed | duration_ms=10.7
+2026-09-04 08:57:22 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=20c128883570 | event=request_start
+2026-09-04 08:57:22 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (141.98ms) request_id=20c128883570 | event=request_completed | duration_ms=141.98
+2026-09-04 08:57:23 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=0f5d272368be | event=request_start
+2026-09-04 08:57:23 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.58ms) request_id=0f5d272368be | event=request_completed | duration_ms=9.58
+2026-09-04 08:57:28 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=2a71840b767d | event=request_start
+2026-09-04 08:57:28 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.23ms) request_id=2a71840b767d | event=request_completed | duration_ms=11.23
+2026-09-04 08:57:33 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=0dac61d6c57d | event=request_start
+2026-09-04 08:57:33 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.58ms) request_id=0dac61d6c57d | event=request_completed | duration_ms=10.58
+2026-09-04 08:57:37 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=c14c5d7d9124 | event=request_start
+2026-09-04 08:57:37 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (3.47ms) request_id=c14c5d7d9124 | event=request_completed | duration_ms=3.47
+2026-09-04 08:57:39 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=2d0783dcb065 | event=request_start
+2026-09-04 08:57:39 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (13.92ms) request_id=2d0783dcb065 | event=request_completed | duration_ms=13.92
+2026-09-04 08:57:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=c3d38524da07 | event=request_start
+2026-09-04 08:57:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.81ms) request_id=c3d38524da07 | event=request_completed | duration_ms=11.81
+2026-09-04 08:57:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=1a80387aa26d | event=request_start
+2026-09-04 08:57:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (11.71ms) request_id=1a80387aa26d | event=request_completed | duration_ms=11.71
+2026-09-04 08:57:49 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=53ab2c9750ad | event=request_start
+2026-09-04 08:57:49 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (43.79ms) request_id=53ab2c9750ad | event=request_completed | duration_ms=43.79
+2026-09-04 08:57:52 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=03576bca710f | event=request_start
+2026-09-04 08:57:52 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (5.46ms) request_id=03576bca710f | event=request_completed | duration_ms=5.46
+2026-09-04 08:57:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=50085d164e68 | event=request_start
+2026-09-04 08:57:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (159.03ms) request_id=50085d164e68 | event=request_completed | duration_ms=159.03
+2026-09-04 08:57:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=f0e8437e85f6 | event=request_start
+2026-09-04 08:57:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.36ms) request_id=f0e8437e85f6 | event=request_completed | duration_ms=11.36
+2026-09-04 08:57:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=21070ed1d2e6 | event=request_start
+2026-09-04 08:57:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.21ms) request_id=21070ed1d2e6 | event=request_completed | duration_ms=6.21
+2026-09-04 08:57:59 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=419350a355ae | event=request_start
+2026-09-04 08:57:59 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (74.22ms) request_id=419350a355ae | event=request_completed | duration_ms=74.22
+2026-09-04 08:58:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=9cb4aea0f8d7 | event=request_start
+2026-09-04 08:58:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (15.91ms) request_id=9cb4aea0f8d7 | event=request_completed | duration_ms=15.91
+2026-09-04 08:58:07 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=bba7bc5550d0 | event=request_start
+2026-09-04 08:58:07 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (6.09ms) request_id=bba7bc5550d0 | event=request_completed | duration_ms=6.09
+2026-09-04 08:58:09 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=39c3e71d1d09 | event=request_start
+2026-09-04 08:58:09 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.51ms) request_id=39c3e71d1d09 | event=request_completed | duration_ms=9.51
+2026-09-04 08:58:14 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=2ae1fde547e0 | event=request_start
+2026-09-04 08:58:14 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (28.29ms) request_id=2ae1fde547e0 | event=request_completed | duration_ms=28.29
+2026-09-04 08:58:20 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=fb0a2e682353 | event=request_start
+2026-09-04 08:58:20 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.43ms) request_id=fb0a2e682353 | event=request_completed | duration_ms=10.43
+2026-09-04 08:58:22 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=fb5689fb2759 | event=request_start
+2026-09-04 08:58:22 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (10.12ms) request_id=fb5689fb2759 | event=request_completed | duration_ms=10.12
+2026-09-04 08:58:23 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=68f3ebefc254 | event=request_start
+2026-09-04 08:58:23 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (153.56ms) request_id=68f3ebefc254 | event=request_completed | duration_ms=153.56
+2026-09-04 08:58:25 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=e4a6ff6eaf03 | event=request_start
+2026-09-04 08:58:25 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.82ms) request_id=e4a6ff6eaf03 | event=request_completed | duration_ms=10.82
+2026-09-04 08:58:30 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=a5aaf8423080 | event=request_start
+2026-09-04 08:58:30 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.06ms) request_id=a5aaf8423080 | event=request_completed | duration_ms=10.06
+2026-09-04 08:58:35 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=e3ef561a0670 | event=request_start
+2026-09-04 08:58:35 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (29.30ms) request_id=e3ef561a0670 | event=request_completed | duration_ms=29.3
+2026-09-04 08:58:38 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=fc2af7e8bece | event=request_start
+2026-09-04 08:58:38 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (7.64ms) request_id=fc2af7e8bece | event=request_completed | duration_ms=7.64
+2026-09-04 08:58:40 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=d19968f02bb0 | event=request_start
+2026-09-04 08:58:40 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (13.11ms) request_id=d19968f02bb0 | event=request_completed | duration_ms=13.11
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request started: POST /api/v1/gate/entry (client=127.0.0.1) request_id=7b1d48d04022 | event=request_start
+2026-09-04 08:58:44 - gate - INFO - ENTRY | vehicle=VEH-723873 session=2c9aafcf-87af-4a2b-be7b-8b1bb9145c17 txn=584b7a4f-7ec0-4145-bd7f-7d068fbf6385
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/gate/entry -> 200 (67.54ms) request_id=7b1d48d04022 | event=request_completed | duration_ms=67.54
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=194f400b489e | event=request_start
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.82ms) request_id=194f400b489e | event=request_completed | duration_ms=11.82
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=cfa1e950ffe3 | event=request_start
+2026-09-04 08:58:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.99ms) request_id=cfa1e950ffe3 | event=request_completed | duration_ms=6.99
+2026-09-04 08:58:49 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=7ed8ba3846aa | event=request_start
+2026-09-04 08:58:49 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.79ms) request_id=7ed8ba3846aa | event=request_completed | duration_ms=9.79
+2026-09-04 08:58:51 - app.middleware.request_logging - INFO - Request started: POST /api/v1/gate/exit (client=127.0.0.1) request_id=abda46514077 | event=request_start
+2026-09-04 08:58:51 - gate - WARNING - REJECTED | vehicle=VEH-730897 action=EXIT reason=No active session matched within threshold
+2026-09-04 08:58:51 - gate - ERROR - GateError | op=exit_session | error=No active session matched within threshold
+2026-09-04 08:58:51 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/gate/exit -> 400 (34.21ms) request_id=abda46514077 | event=request_completed | duration_ms=34.21
+2026-09-04 08:58:53 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=c006d27dec48 | event=request_start
+2026-09-04 08:58:53 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (7.80ms) request_id=c006d27dec48 | event=request_completed | duration_ms=7.8
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=cd4df3e3fd29 | event=request_start
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (162.48ms) request_id=cd4df3e3fd29 | event=request_completed | duration_ms=162.48
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=955061c893d5 | event=request_start
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (6.27ms) request_id=955061c893d5 | event=request_completed | duration_ms=6.27
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=ca84e22491ec | event=request_start
+2026-09-04 08:58:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (8.27ms) request_id=ca84e22491ec | event=request_completed | duration_ms=8.27
+2026-09-04 08:58:59 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=5a1f8cb05f45 | event=request_start
+2026-09-04 08:58:59 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (13.96ms) request_id=5a1f8cb05f45 | event=request_completed | duration_ms=13.96
+2026-09-04 08:59:05 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=529bdef3cff9 | event=request_start
+2026-09-04 08:59:05 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (15.92ms) request_id=529bdef3cff9 | event=request_completed | duration_ms=15.92
+2026-09-04 08:59:08 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=66f551749f73 | event=request_start
+2026-09-04 08:59:08 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (4.49ms) request_id=66f551749f73 | event=request_completed | duration_ms=4.49
+2026-09-04 08:59:10 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=f11bcf33dfe6 | event=request_start
+2026-09-04 08:59:10 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (12.05ms) request_id=f11bcf33dfe6 | event=request_completed | duration_ms=12.05
+2026-09-04 08:59:12 - app.middleware.request_logging - INFO - Request started: DELETE /api/v1/gate/session/VEH-723873 (client=127.0.0.1) request_id=1a04b5a2c3cd | event=request_start
+2026-09-04 08:59:12 - app.middleware.request_logging - INFO - Request completed: DELETE /api/v1/gate/session/VEH-723873 -> 200 (18.65ms) request_id=1a04b5a2c3cd | event=request_completed | duration_ms=18.65
+2026-09-04 08:59:12 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=b88065f7f8b8 | event=request_start
+2026-09-04 08:59:12 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.15ms) request_id=b88065f7f8b8 | event=request_completed | duration_ms=11.15
+2026-09-04 08:59:17 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=b4e03fc9f776 | event=request_start
+2026-09-04 08:59:17 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (11.46ms) request_id=b4e03fc9f776 | event=request_completed | duration_ms=11.46
+2026-09-04 08:59:23 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=849fc9e6b2cc | event=request_start
+2026-09-04 08:59:23 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (15.37ms) request_id=849fc9e6b2cc | event=request_completed | duration_ms=15.37
+2026-09-04 08:59:23 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=bb3e19418011 | event=request_start
+2026-09-04 08:59:23 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (30.39ms) request_id=bb3e19418011 | event=request_completed | duration_ms=30.39
+2026-09-04 08:59:24 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=28e2196d78f3 | event=request_start
+2026-09-04 08:59:24 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (206.82ms) request_id=28e2196d78f3 | event=request_completed | duration_ms=206.82
+2026-09-04 08:59:28 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=be88135b2374 | event=request_start
+2026-09-04 08:59:28 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (8.18ms) request_id=be88135b2374 | event=request_completed | duration_ms=8.18
+2026-09-04 08:59:33 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=36e6feeca975 | event=request_start
+2026-09-04 08:59:33 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (6.73ms) request_id=36e6feeca975 | event=request_completed | duration_ms=6.73
+2026-09-04 08:59:38 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=98e9ce6fe004 | event=request_start
+2026-09-04 08:59:39 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (5.80ms) request_id=98e9ce6fe004 | event=request_completed | duration_ms=5.8
+2026-09-04 08:59:39 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=264b1d45c814 | event=request_start
+2026-09-04 08:59:39 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (6.46ms) request_id=264b1d45c814 | event=request_completed | duration_ms=6.46
+2026-09-04 08:59:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=d6d4742446dc | event=request_start
+2026-09-04 08:59:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (5.84ms) request_id=d6d4742446dc | event=request_completed | duration_ms=5.84
+2026-09-04 08:59:44 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=b542416a3e47 | event=request_start
+2026-09-04 08:59:44 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (3.65ms) request_id=b542416a3e47 | event=request_completed | duration_ms=3.65
+2026-09-04 08:59:49 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=a8ba6978ecdd | event=request_start
+2026-09-04 08:59:49 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.23ms) request_id=a8ba6978ecdd | event=request_completed | duration_ms=9.23
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=aed10c8499f7 | event=request_start
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (13.04ms) request_id=aed10c8499f7 | event=request_completed | duration_ms=13.04
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=577cd7ceaefa | event=request_start
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.15ms) request_id=577cd7ceaefa | event=request_completed | duration_ms=9.15
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=ca2b49ea3511 | event=request_start
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (24.25ms) request_id=ca2b49ea3511 | event=request_completed | duration_ms=24.25
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=7bf218160a2d | event=request_start
+2026-09-04 08:59:54 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (220.33ms) request_id=7bf218160a2d | event=request_completed | duration_ms=220.33
+2026-09-04 08:59:59 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=248fe5ee27d8 | event=request_start
+2026-09-04 08:59:59 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (21.06ms) request_id=248fe5ee27d8 | event=request_completed | duration_ms=21.06
+2026-09-04 09:00:04 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=2052421481c9 | event=request_start
+2026-09-04 09:00:04 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (14.00ms) request_id=2052421481c9 | event=request_completed | duration_ms=14.0
+2026-09-04 09:00:09 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=d8ccae1c6be6 | event=request_start
+2026-09-04 09:00:09 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (17.94ms) request_id=d8ccae1c6be6 | event=request_completed | duration_ms=17.94
+2026-09-04 09:00:10 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=a9d98a6d3677 | event=request_start
+2026-09-04 09:00:10 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (14.55ms) request_id=a9d98a6d3677 | event=request_completed | duration_ms=14.55
+2026-09-04 09:00:15 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=4acce49361ec | event=request_start
+2026-09-04 09:00:15 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (9.36ms) request_id=4acce49361ec | event=request_completed | duration_ms=9.36
+2026-09-04 09:00:20 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=27af61cc8ced | event=request_start
+2026-09-04 09:00:20 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (10.26ms) request_id=27af61cc8ced | event=request_completed | duration_ms=10.26
+2026-09-04 09:00:24 - app.middleware.request_logging - INFO - Request started: GET /api/v1/camera/status (client=127.0.0.1) request_id=cc06945e950c | event=request_start
+2026-09-04 09:00:24 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/camera/status -> 200 (3.83ms) request_id=cc06945e950c | event=request_completed | duration_ms=3.83
+2026-09-04 09:00:25 - app.middleware.request_logging - INFO - Request started: GET /api/v1/system/health (client=127.0.0.1) request_id=080824cec48a | event=request_start
+2026-09-04 09:00:25 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/system/health -> 200 (102.09ms) request_id=080824cec48a | event=request_completed | duration_ms=102.09
+2026-09-04 09:00:25 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=c70591b6eb46 | event=request_start
+2026-09-04 09:00:25 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (8.48ms) request_id=c70591b6eb46 | event=request_completed | duration_ms=8.48
+2026-09-04 09:00:30 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=c126df507fba | event=request_start
+2026-09-04 09:00:31 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (84.15ms) request_id=c126df507fba | event=request_completed | duration_ms=84.15
+2026-09-04 09:00:36 - app.middleware.request_logging - INFO - Request started: GET /api/v1/gate/active (client=127.0.0.1) request_id=13c882e6a537 | event=request_start
+2026-09-04 09:00:36 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/gate/active -> 200 (7.63ms) request_id=13c882e6a537 | event=request_completed | duration_ms=7.63
