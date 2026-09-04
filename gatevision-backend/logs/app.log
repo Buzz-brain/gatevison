@@ -40867,3 +40867,25 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2026-09-03 21:07:18 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (4.61ms) request_id=01b28e3e4695 | event=request_completed | duration_ms=4.61
 2026-09-03 21:08:19 - app.middleware.request_logging - INFO - Request started: GET /api/v1/auth/me (client=127.0.0.1) request_id=8f16e69b1354 | event=request_start
 2026-09-03 21:08:19 - app.middleware.request_logging - INFO - Request completed: GET /api/v1/auth/me -> 200 (12.19ms) request_id=8f16e69b1354 | event=request_completed | duration_ms=12.19
+2026-09-04 08:48:38 - app.database.connection - INFO - Database connected successfully
+2026-09-04 08:48:38 - app.services.ai.warmup - INFO - Warm-up: starting plate detector + OCR request_id=startup | event=warmup_started
+2026-09-04 08:48:38 - app.services.ai.plate_detection.model_loader - INFO - Loading YOLO model from: models/license_plate_detector.pt
+2026-09-04 08:48:39 - app.services.ai.registry.model_registry - INFO - Registered model 'yolo' (object_detection) on cpu
+2026-09-04 08:48:39 - app.services.ai.plate_detection.model_loader - INFO - Model loaded: device=cpu, version=8.3.87
+2026-09-04 08:48:39 - app.services.ai.plate_detection.model_loader - INFO - YOLO model classes: {0: 'license_plate'} | event=model_classes
+2026-09-04 08:48:39 - app.services.ai.plate_detection.model_loader - INFO - YOLO plate classes: ['license_plate'] | event=model_plate_classes
+2026-09-04 08:48:40 - app.services.ai.warmup - INFO - Warm-up: plate detector ready (1247.90ms) request_id=startup | event=warmup_model_ready | duration_ms=1247.9 | model=plate_detector
+2026-09-04 08:48:40 - app.services.ai.ocr.ocr_loader - INFO - Loading EasyOCR reader: langs=['en'], gpu=False
+2026-09-04 08:48:40 - easyocr.easyocr - WARNING - Using CPU. Note: This module is much faster with a GPU.
+2026-09-04 08:48:51 - app.services.ai.registry.model_registry - INFO - Registered model 'easyocr' (ocr) on cpu
+2026-09-04 08:48:51 - app.services.ai.ocr.ocr_loader - INFO - OCR reader loaded: device=cpu, langs=['en']
+2026-09-04 08:48:51 - app.services.ai.warmup - INFO - Warm-up: OCR reader ready (11761.78ms) request_id=startup | event=warmup_model_ready | duration_ms=11761.78 | model=ocr
+2026-09-04 08:48:53 - app.middleware.request_logging - INFO - Request started: POST /api/v1/auth/login (client=127.0.0.1) request_id=c89fb52ae454 | event=request_start
+2026-09-04 08:48:53 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\HOP\Desktop\gatevison\gatevision-backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2026-09-04 08:48:54 - app.services.auth_service - INFO - User logged in: admin@gatevision.ai
+2026-09-04 08:48:54 - app.middleware.request_logging - INFO - Request completed: POST /api/v1/auth/login -> 200 (591.30ms) request_id=c89fb52ae454 | event=request_completed | duration_ms=591.3

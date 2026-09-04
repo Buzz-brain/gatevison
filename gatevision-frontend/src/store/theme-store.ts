@@ -11,7 +11,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      mode: "dark",
+      mode: "light",
       setMode: (mode) => set({ mode }),
       toggleMode: () =>
         set((state) => ({ mode: state.mode === "dark" ? "light" : "dark" })),

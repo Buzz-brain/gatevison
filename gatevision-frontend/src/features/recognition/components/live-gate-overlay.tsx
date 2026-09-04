@@ -643,12 +643,28 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
   const handleFaceCapture = useCallback(async () => {
     primeAudio();
-    const file = await captureFrame();
+    // Ensure we are on the live face camera before capturing: in vehicle_ready
+    // after an upload the live <video> is not rendered, so we must switch to
+    // face_scan (which renders it) and let the camera/video attach first.
+    if (phaseRef.current === "vehicle_ready") {
+      setPhase("face_scan");
+      setNarrative("Please look at the face camera.");
+      await sleep(600);
+    }
+    if (!streamRef.current) {
+      await startCamera();
+      await sleep(800);
+    }
+    let file = await captureFrame();
+    if (!file) {
+      await sleep(400);
+      file = await captureFrame();
+    }
     if (file) {
       setFacePreviewUrl(URL.createObjectURL(file));
       await validateFace(file);
     }
-  }, [captureFrame, validateFace]);
+  }, [captureFrame, validateFace, startCamera]);
 
   const handleFaceUpload = useCallback(async (file: File) => {
     primeAudio();
@@ -1005,7 +1021,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         </div>
 
         {/* Result detail card */}
-        {phase === "complete" && result && apiResult && (
+        {(phase === "complete" || phase === "vehicle_ready") && result && apiResult && (
           <div className="grid w-full gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Plate</p>
