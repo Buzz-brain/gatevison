@@ -75,6 +75,42 @@ def test_valid_abc1234ab():
     assert result.valid is True
 
 
+def test_valid_abc123d_7char():
+    validator = NigeriaPlateValidator()
+    result = validator.validate("ABC123D")
+    assert result.valid is True
+
+
+def test_valid_ab123cd_7char():
+    validator = NigeriaPlateValidator()
+    result = validator.validate("AB123CD")
+    assert result.valid is True
+
+
+def test_valid_a123bcd_7char():
+    validator = NigeriaPlateValidator()
+    result = validator.validate("A123BCD")
+    assert result.valid is True
+
+
+def test_valid_abc1234_7char():
+    validator = NigeriaPlateValidator()
+    result = validator.validate("ABC1234")
+    assert result.valid is True
+
+
+def test_valid_abjz5rd_7char():
+    validator = NigeriaPlateValidator()
+    result = validator.validate("ABJZ5RD")
+    assert result.valid is True
+
+
+def test_valid_7char_only_letters_and_digits():
+    validator = NigeriaPlateValidator()
+    assert validator.validate("AB12CD3").valid is True
+    assert validator.validate("A1B2C3D").valid is True
+
+
 def test_valid_lowercase_input():
     validator = NigeriaPlateValidator()
     result = validator.validate("abc123aa")

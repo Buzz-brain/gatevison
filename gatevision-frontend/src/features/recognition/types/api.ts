@@ -7,6 +7,14 @@ export interface ApiBoundingBox {
   confidence: number;
 }
 
+export interface ApiPlateBox {
+  plate: string;
+  confidence: number;
+  validation_status: string;
+  bbox: number[];
+  detection_confidence: number;
+}
+
 export interface ApiDetectionResult {
   vehicle: ApiBoundingBox | null;
   plate: ApiBoundingBox | null;
@@ -145,6 +153,7 @@ export interface ApiPipelineResult {
   cropped_plate: ApiCroppedResult | null;
   cropped_face: ApiCroppedResult | null;
   plate_detection: ApiDetectionResult | null;
+  plates: ApiPlateBox[];
   ocr: ApiOCRData | null;
   face: ApiFaceData | null;
   vehicle: ApiVehicleFingerprint | null;

@@ -306,6 +306,8 @@ def _to_api_response(result):
             plate=r.get("plate", ""),
             confidence=r.get("confidence", 0.0),
             validation_status=r.get("validation_status", "unchecked"),
+            bbox=r.get("bbox") or [],
+            detection_confidence=r.get("detection_confidence", 0.0),
         ))
 
     stage_results = [

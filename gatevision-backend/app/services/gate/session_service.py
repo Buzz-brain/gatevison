@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.models.gate_session import GateSession
@@ -44,7 +44,7 @@ class SessionService:
                 f"Vehicle '{vehicle_id}' is already INSIDE"
             )
         session.current_state = "INSIDE"
-        session.last_entry_time = datetime.utcnow()
+        session.last_entry_time = datetime.now(timezone.utc)
         return await self._repo.update(session)
 
     async def transition_to_outside(
@@ -58,7 +58,7 @@ class SessionService:
                 f"Vehicle '{vehicle_id}' is already OUTSIDE"
             )
         session.current_state = "OUTSIDE"
-        session.last_exit_time = datetime.utcnow()
+        session.last_exit_time = datetime.now(timezone.utc)
         return await self._repo.update(session)
 
     async def open_session(
@@ -98,7 +98,7 @@ class SessionService:
         if decision_mode is not None:
             session.decision_mode = decision_mode
         session.current_state = "INSIDE"
-        session.last_entry_time = datetime.utcnow()
+        session.last_entry_time = datetime.now(timezone.utc)
         return await self._repo.update(session)
 
     async def force_close(self, vehicle_id: str) -> GateSession:
@@ -111,7 +111,7 @@ class SessionService:
                 f"(current state: {session.current_state})"
             )
         session.current_state = "OUTSIDE"
-        session.last_exit_time = datetime.utcnow()
+        session.last_exit_time = datetime.now(timezone.utc)
         return await self._repo.update(session)
 
     async def close_session_by_id(self, session_id: str) -> GateSession:
@@ -124,7 +124,7 @@ class SessionService:
                 f"(current state: {session.current_state})"
             )
         session.current_state = "OUTSIDE"
-        session.last_exit_time = datetime.utcnow()
+        session.last_exit_time = datetime.now(timezone.utc)
         return await self._repo.update(session)
 
     async def attach_exit_confidence(

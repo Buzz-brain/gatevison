@@ -1062,15 +1062,22 @@ class PipelineOrchestrator:
         ]
 
     def _build_recognized_plates(self, context: PipelineContext) -> list:
-        plates = [
-            {
+        detections = context.detections or []
+        plates = []
+        for r in context.ocr_results:
+            if not (r.get("raw_text") or r.get("cleaned_text")):
+                continue
+            plate_index = r.get("plate_index")
+            det = {}
+            if isinstance(plate_index, int) and 0 <= plate_index < len(detections):
+                det = detections[plate_index] or {}
+            plates.append({
                 "plate": r.get("cleaned_text", r.get("raw_text", "")),
                 "confidence": r.get("confidence", 0.0),
                 "validation_status": r.get("validation_status", "unchecked"),
-            }
-            for r in context.ocr_results
-            if r.get("raw_text") or r.get("cleaned_text")
-        ]
+                "bbox": list(det.get("bbox", []) or []),
+                "detection_confidence": det.get("confidence", 0.0),
+            })
         # Present validated plates first so downstream consumers (gate workflow,
         # decision engine) prefer a real plate over a spurious high-confidence
         # read (e.g. a school name painted on a bus).

@@ -19,6 +19,9 @@ import { recognizeFaceUploadApi } from "@/services/api/face.api";
 import { mapPipelineResult } from "../api/mapper";
 import type { RecognitionResult } from "../types";
 import type { ApiPipelineResult } from "../types/api";
+import { FaceLandmarkOverlay } from "./face-landmark-overlay";
+import { PlateBoxesOverlay } from "./plate-boxes-overlay";
+import { assessFace, type LandmarkData } from "../utils/face-coaching";
 
 type Phase = "welcome" | "scanning" | "vehicle_ready" | "face_scan" | "face_validating" | "complete" | "handoff" | "error";
 
@@ -26,6 +29,15 @@ interface LiveGateOverlayProps {
   onClose: () => void;
   direction: "entry" | "exit";
   requireFace: boolean;
+}
+
+interface FaceLandmarkState {
+  data: LandmarkData;
+  imageWidth: number;
+  imageHeight: number;
+  coachingText: string;
+  tone: "good" | "adjust" | "low";
+  score: number;
 }
 
 const MAX_FACE_ATTEMPTS = 3;
@@ -221,6 +233,9 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const [revealDecision, setRevealDecision] = useState(false);
   const [scanKind, setScanKind] = useState<"vehicle" | "face">("vehicle");
   const [facePreviewUrl, setFacePreviewUrl] = useState<string | null>(null);
+  const [faceLandmark, setFaceLandmark] = useState<FaceLandmarkState | null>(null);
+  const [faceCountdown, setFaceCountdown] = useState<number | null>(null);
+  const [faceArmed, setFaceArmed] = useState(false);
   const [faceDenied, setFaceDenied] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const facingModeRef = useRef<"user" | "environment">("environment");
@@ -248,6 +263,53 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const pendingCheckedRef = useRef(false);
   const cameraStartingRef = useRef(false);
   const cameraRetryRef = useRef(0);
+
+  const loadImageSize = useCallback((file: File): Promise<{ w: number; h: number }> => {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ w: 0, h: 0 });
+      };
+      img.src = url;
+    });
+  }, []);
+
+  const buildFaceLandmarkState = useCallback(
+    (
+      detection: { bbox: number[]; landmarks: number[][]; confidence: number } | undefined,
+      imageWidth: number,
+      imageHeight: number,
+    ): FaceLandmarkState | null => {
+      if (!detection || !Array.isArray(detection.landmarks) || detection.landmarks.length < 5) {
+        return null;
+      }
+      const data: LandmarkData = {
+        bbox: detection.bbox,
+        landmarks: detection.landmarks.slice(0, 5).map((pt) => [pt[0] ?? 0, pt[1] ?? 0]),
+        confidence: detection.confidence,
+      };
+      const c = assessFace(data, imageWidth, imageHeight);
+      const tone: FaceLandmarkState["tone"] =
+        c.scoreLabel === "GOOD" ? "good" : c.scoreLabel === "LOW" ? "low" : "adjust";
+      const text = c.messages.length ? c.messages[0]! : "Looks good - hold still.";
+      return {
+        data,
+        imageWidth,
+        imageHeight,
+        coachingText: text,
+        tone,
+        score: c.score,
+      };
+    },
+    [],
+  );
+
 
   useEffect(() => {
     const video = videoRef.current;
@@ -530,8 +592,12 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const handleCapture = useCallback(async () => {
     primeAudio();
     const file = await captureFrame();
-    if (file) await runScan(file, "vehicle");
-  }, [captureFrame, runScan]);
+    if (file) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(file));
+      await runScan(file, "vehicle");
+    }
+  }, [captureFrame, runScan, previewUrl]);
 
   const handleUpload = useCallback(async (file: File) => {
     primeAudio();
@@ -622,6 +688,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   const validateFace = useCallback(async (faceFile: File) => {
     const seq = ++journeySeqRef.current;
     setPhase("face_validating");
+    setFaceLandmark(null);
     setNarrative("Checking your face photo...");
 
     const fail = (message: string, spoken: string) => {
@@ -633,6 +700,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         return;
       }
       setPhase("face_scan");
+      setFaceLandmark(null);
       setFacePreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
@@ -645,8 +713,33 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       const res = await recognizeFaceUploadApi(faceFile);
       if (journeySeqRef.current !== seq) return;
       if (res.face_detected) {
-        setNarrative("Face captured. Thank you.");
-        speak("Face captured.", mutedRef.current);
+        const { w, h } = await loadImageSize(faceFile);
+        const landmark = buildFaceLandmarkState(res.detections?.[0], w, h);
+        if (landmark) setFaceLandmark(landmark);
+
+        if (landmark && landmark.tone !== "good") {
+          // Coach the user: keep the captured photo + landmarks visible and
+          // explain how to reposition, then let them re-scan.
+          attemptsRef.current += 1;
+          setAttempts(attemptsRef.current);
+          if (attemptsRef.current >= MAX_FACE_ATTEMPTS) {
+            finishFaceDenied();
+            return;
+          }
+          setPhase("face_scan");
+          const coached = `${landmark.coachingText} (Attempt ${attemptsRef.current} of ${MAX_FACE_ATTEMPTS} - press Re-Scan Face)`;
+          setNarrative(coached);
+          speak(coached, mutedRef.current);
+          return;
+        }
+
+        setNarrative("Face looks good. I can see your features clearly. Proceeding...");
+        speak("Face looks good. Proceeding.", mutedRef.current);
+        // Brief review so the user sees the detected bounding box + landmarks.
+        await sleep(1600);
+        if (journeySeqRef.current !== seq) return;
+        setFaceLandmark(null);
+        setNarrative("Verifying your identity...");
         await runScan(faceFile, "face");
       } else {
         fail(
@@ -662,32 +755,84 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         "I could not check that face photo. Please try again.",
       );
     }
-  }, [runScan, finishFaceDenied]);
+  }, [runScan, finishFaceDenied, loadImageSize, buildFaceLandmarkState]);
 
-  const handleFaceCapture = useCallback(async () => {
+  const prepareFaceCapture = useCallback(async () => {
     primeAudio();
-    // Ensure we are on the live face camera before capturing: in vehicle_ready
-    // after an upload the live <video> is not rendered, so we must switch to
-    // face_scan (which renders it) and let the camera/video attach first.
-    if (phaseRef.current === "vehicle_ready") {
+
+    const waitForVideo = async (timeoutMs = 2500): Promise<boolean> => {
+      const started = Date.now();
+      while (Date.now() - started < timeoutMs) {
+        const video = videoRef.current;
+        if (video && streamRef.current && video.srcObject === streamRef.current && video.videoWidth > 0 && video.videoHeight > 0) {
+          return true;
+        }
+        await sleep(80);
+      }
+      return false;
+    };
+
+    // Drop any coached photo so the live <video> renders again.
+    setFaceLandmark(null);
+    setFaceCountdown(null);
+    if (facePreviewUrl) URL.revokeObjectURL(facePreviewUrl);
+    setFacePreviewUrl(null);
+
+    if (phaseRef.current === "vehicle_ready" || phaseRef.current === "face_scan") {
       setPhase("face_scan");
-      setNarrative("Please look at the face camera.");
-      await sleep(600);
     }
+    setNarrative("Position your face inside the oval, then press Ready when you're set.");
+    speak("Position your face inside the oval. Press Ready when you're ready.", mutedRef.current);
+    await sleep(50);
+
     if (!streamRef.current) {
       await startCamera();
-      await sleep(800);
     }
+    if (!(await waitForVideo())) {
+      await startCamera();
+      await sleep(600);
+      await waitForVideo();
+    }
+    if (streamRef.current && videoRef.current) {
+      videoRef.current.play().catch(() => undefined);
+    }
+
+    setFaceArmed(true);
+  }, [startCamera, facePreviewUrl]);
+
+  const startFaceCountdown = useCallback(async () => {
+    primeAudio();
+    if (!faceArmed) return;
+    setFaceArmed(false);
+
+    // Give the user time to position before capturing.
+    setFaceCountdown(3);
+    speak("Capturing in three.", mutedRef.current);
+    setNarrative("Capturing in 3...");
+    await sleep(1000);
+    setFaceCountdown(2);
+    setNarrative("Capturing in 2...");
+    await sleep(1000);
+    setFaceCountdown(1);
+    setNarrative("Hold still. Capturing...");
+    await sleep(1000);
+    setFaceCountdown(null);
+
     let file = await captureFrame();
     if (!file) {
+      setNarrative("Retrying capture...");
       await sleep(400);
       file = await captureFrame();
     }
     if (file) {
       setFacePreviewUrl(URL.createObjectURL(file));
       await validateFace(file);
+    } else {
+      setFaceArmed(true);
+      setNarrative("I could not use the camera. Position yourself and press Ready, or upload a photo.");
+      speak("I could not use the camera. Please try again or upload a photo.", mutedRef.current);
     }
-  }, [captureFrame, validateFace, startCamera]);
+  }, [faceArmed, captureFrame, validateFace]);
 
   const handleFaceUpload = useCallback(async (file: File) => {
     primeAudio();
@@ -733,6 +878,9 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
     setScanKind("vehicle");
     setHandoffPending(null);
     setHandoffError(null);
+    setFaceLandmark(null);
+    setFaceCountdown(null);
+    setFaceArmed(false);
     setPhase("welcome");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
@@ -794,7 +942,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
       </div>
 
       {/* Main */}
-      <div className="relative flex flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:overflow-hidden">
+      <div className="relative flex flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:gap-6">
         {/* Video preview (left column on desktop) */}
         <div className="relative w-full lg:w-1/2">
           <div className="relative aspect-video max-h-[40vh] w-full overflow-hidden rounded-3xl border-2 border-border/40 bg-black/70 shadow-2xl lg:max-h-[72vh]">
@@ -806,6 +954,21 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
               <img src={previewUrl} alt="Uploaded vehicle" className="h-full w-full object-cover" />
             ) : (
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+            )}
+            {previewUrl && !facePreviewUrl && apiResult?.plates && apiResult.plates.length > 0 && (
+              <PlateBoxesOverlay imageUrl={previewUrl} plates={apiResult.plates} />
+            )}
+            {faceLandmark && (
+              <FaceLandmarkOverlay
+                data={faceLandmark.data}
+                imageWidth={faceLandmark.imageWidth}
+                imageHeight={faceLandmark.imageHeight}
+                coaching={{
+                  text: faceLandmark.coachingText,
+                  tone: faceLandmark.tone,
+                  score: faceLandmark.score,
+                }}
+              />
             )}
             {!facePreviewUrl && !streamRef.current && !cameraError && (phase === "face_scan" || !previewUrl) && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 text-base text-muted-foreground">
@@ -840,6 +1003,28 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                   <span className="px-4 text-center text-xs font-bold uppercase tracking-[0.25em] text-white">
                     Position your face here
                   </span>
+                </div>
+              </div>
+            )}
+            {faceArmed && !facePreviewUrl && !cameraError && faceCountdown === null && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
+                <div className="rounded-full border border-primary/40 bg-black/75 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm">
+                  Position yourself, then press Ready to capture
+                </div>
+              </div>
+            )}
+            {faceCountdown !== null && !facePreviewUrl && !cameraError && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-white/70 bg-black/55 backdrop-blur-sm">
+                  <motion.span
+                    key={faceCountdown}
+                    initial={prefersReduced ? undefined : { scale: 1.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-6xl font-bold tabular-nums text-white"
+                  >
+                    {faceCountdown}
+                  </motion.span>
                 </div>
               </div>
             )}
@@ -948,7 +1133,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
           {phase === "vehicle_ready" && (
             <>
-              <Button size="lg" onClick={handleFaceCapture} className="h-12 px-7 text-base gap-2">
+              <Button size="lg" onClick={prepareFaceCapture} className="h-12 px-7 text-base gap-2">
                 <Camera className="h-5 w-5" />
                 Scan Face Here
               </Button>
@@ -985,10 +1170,17 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
 
           {phase === "face_scan" && (
             <>
-              <Button size="lg" onClick={handleFaceCapture} className="h-12 px-7 text-base gap-2">
-                <Camera className="h-5 w-5" />
-                Scan Face
-              </Button>
+              {faceArmed ? (
+                <Button size="lg" onClick={startFaceCountdown} className="h-12 px-7 text-base gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Ready — Capture
+                </Button>
+              ) : (
+                <Button size="lg" onClick={prepareFaceCapture} className="h-12 px-7 text-base gap-2">
+                  <Camera className="h-5 w-5" />
+                  {faceLandmark ? "Re-Scan Face" : "Scan Face"}
+                </Button>
+              )}
               <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="h-12 px-7 text-base gap-2">
                 <Upload className="h-5 w-5" />
                 Upload a Photo of My Face

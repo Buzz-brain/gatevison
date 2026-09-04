@@ -27,6 +27,10 @@ class NigeriaPlateValidator(BasePlateValidator):
         re.compile(r"^[A-Z]{3}\d{4}[A-Z]{2}$"),   # ABC1234AB
         re.compile(r"^[A-Z]{2}\d{4}[A-Z]{2}$"),   # AB1234CD
         re.compile(r"^[A-Z]{3}\d{2}[A-Z]{3}$"),   # ABC12DEF
+        re.compile(r"^[A-Z]{3}\d{3}[A-Z]{1}$"),   # ABC123D (7-char)
+        re.compile(r"^[A-Z]{2}\d{3}[A-Z]{2}$"),   # AB123CD (7-char)
+        re.compile(r"^[A-Z]{1}\d{3}[A-Z]{3}$"),   # A123BCD (7-char)
+        re.compile(r"^[A-Z]{3}\d{4}$"),           # ABC1234 (7-char)
     ]
 
     FORMAT_DESCRIPTIONS = [
@@ -36,6 +40,10 @@ class NigeriaPlateValidator(BasePlateValidator):
         "ABC1234AB (3 letters, 4 digits, 2 letters)",
         "AB1234CD (2 letters, 4 digits, 2 letters)",
         "ABC12DEF (3 letters, 2 digits, 3 letters)",
+        "ABC123D (3 letters, 3 digits, 1 letter)",
+        "AB123CD (2 letters, 3 digits, 2 letters)",
+        "A123BCD (1 letter, 3 digits, 3 letters)",
+        "ABC1234 (3 letters, 4 digits)",
     ]
 
     def validate(self, plate_text: str) -> ValidationResult:
@@ -60,6 +68,18 @@ class NigeriaPlateValidator(BasePlateValidator):
                 return ValidationResult(
                     True, f"Valid format: {self.FORMAT_DESCRIPTIONS[i]}"
                 )
+
+        # Nigerian plates commonly have 7 characters with varied letter/digit
+        # layouts (e.g. ABJZ5RD). Accept any 7-char alphanumeric plate that
+        # contains at least one letter and one digit.
+        if len(cleaned) == 7 and re.search(r"[A-Z]", cleaned) and re.search(
+            r"\d", cleaned
+        ):
+            return ValidationResult(
+                True,
+                "Valid format: 7-character Nigerian plate "
+                "(letters and digits)",
+            )
 
         return ValidationResult(
             False,

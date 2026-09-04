@@ -1,5 +1,9 @@
 export function formatClock(iso: string): string {
-  const d = new Date(iso);
+  const t = iso?.trim() ?? "";
+  // Backend historically emits naive UTC ISO strings (no offset). Treat
+  // naive timestamps as UTC so they convert correctly to local time.
+  const normalized = /(z|[+-]\d{2}:\d{2})$/i.test(t) ? t : `${t}Z`;
+  const d = new Date(normalized);
   if (isNaN(d.getTime())) return "--:--";
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }

@@ -87,6 +87,10 @@ async def test_recognize_success(
     assert result["face_count"] == 1
     assert len(result["detections"]) == 1
     assert result["detections"][0]["confidence"] == 0.95
+    assert result["detections"][0]["bbox"] == [10, 10, 60, 60]
+    assert result["detections"][0]["landmarks"] == [
+        [15, 20], [55, 20], [35, 30], [20, 45], [50, 45],
+    ]
 
 
 @pytest.mark.asyncio

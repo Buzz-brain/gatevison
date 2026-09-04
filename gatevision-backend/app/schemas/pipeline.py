@@ -8,6 +8,8 @@ class RecognizedPlate(BaseModel):
     plate: str
     confidence: float
     validation_status: str = "unchecked"
+    bbox: list[int] = Field(default_factory=list)
+    detection_confidence: float = 0.0
 
 
 class StageResultResponse(BaseModel):

@@ -16,6 +16,7 @@ import { usePlayback } from "./hooks/use-playback";
 import { useProcessPipeline, useProcessPipelineCamera, useStartCamera, useStopCamera, useCreatePendingVehicle } from "./hooks/use-recognition-api";
 import { LiveGateOverlay } from "./components/live-gate-overlay";
 import { CaptureInput } from "./components/capture-input";
+import { PlateBoxesOverlay } from "./components/plate-boxes-overlay";
 import { Pipeline } from "./components/pipeline";
 import { CroppedResults } from "./components/cropped-results";
 import { OCRPanel } from "./components/ocr-panel";
@@ -29,12 +30,13 @@ import { buildTimelineFromApi, mapPipelineResult, formatTimestamp } from "./api/
 import { getPipelineStatusApi } from "@/services/api/pipeline.api";
 import { getRecognitionResultApi } from "@/services/api/recognition.api";
 import type { RecognitionResult } from "./types";
-import type { ApiPipelineStatus, ApiPipelineStage } from "./types/api";
+import type { ApiPipelineStatus, ApiPipelineStage, ApiPlateBox } from "./types/api";
 
 function RecognitionCenterPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<RecognitionResult | null>(null);
+const [plateBoxes, setPlateBoxes] = useState<ApiPlateBox[]>([]);
   const [direction, setDirection] = useState<"entry" | "exit">("entry");
   const [requireFace, setRequireFace] = useState(true);
   const [liveGateOpen, setLiveGateOpen] = useState(false);
@@ -67,6 +69,7 @@ function RecognitionCenterPage() {
       setPreviewUrl(null);
     }
     setResult(null);
+    setPlateBoxes([]);
     setPlaybackMode(false);
     resetPipeline();
     setTimelineEvents([]);
@@ -135,6 +138,7 @@ function RecognitionCenterPage() {
     try {
       const apiResult = await processMutation.mutateAsync({ file: selectedFile, direction, requireFace });
       applyResultStatus(apiResult);
+      setPlateBoxes(apiResult.plates ?? []);
 
       if (apiResult.status === "completed") {
         const mapped = mapPipelineResult(apiResult);
@@ -396,6 +400,17 @@ function RecognitionCenterPage() {
           {/* Recognition Results */}
           <div>
             <h3 className="mb-2 text-sm font-medium">Recognition Results</h3>
+            {previewUrl && plateBoxes.length > 0 && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  YOLO plate detection — boxes drawn where the detector located each plate
+                </p>
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-black">
+                  <img src={previewUrl} alt="Captured frame with plate boxes" className="absolute inset-0 h-full w-full object-cover" />
+                  <PlateBoxesOverlay imageUrl={previewUrl} plates={plateBoxes} />
+                </div>
+              </div>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <CroppedResults
                 results={[result.croppedVehicle, result.croppedPlate, result.croppedFace]}

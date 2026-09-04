@@ -107,8 +107,11 @@ class PlateDetector:
             if any(hint in str(name).strip().lower() for hint in PLATE_CLASS_HINTS)
         }
         if not matches:
-            logger.debug(
-                "No plate class found in model classes %s", names
+            logger.warning(
+                "No plate class found in model classes %s; all detections "
+                "will be dropped. Load a dedicated plate detection model "
+                "(e.g. license_plate_detector.pt).",
+                names,
             )
         return matches
 

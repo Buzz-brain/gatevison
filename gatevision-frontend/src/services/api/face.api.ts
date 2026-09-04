@@ -28,6 +28,7 @@ export interface RecognizeFaceResult {
   inference_time_ms: number;
   detections: Array<{
     bbox: number[];
+    landmarks: number[][];
     confidence: number;
     similarity_score: number | null;
     matched: boolean;

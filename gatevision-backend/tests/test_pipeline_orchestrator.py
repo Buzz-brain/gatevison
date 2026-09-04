@@ -96,6 +96,8 @@ async def test_execute_from_upload_success(
         assert len(result.detected_plates) == 1
         assert len(result.recognized_plates) == 1
         assert result.recognized_plates[0]["plate"] == "ABC123AA"
+        assert result.recognized_plates[0]["bbox"] == [10, 15, 50, 15, 50, 35, 10, 35]
+        assert result.recognized_plates[0]["detection_confidence"] == 0.95
         mock_services.detection_service.detect_from_frame.assert_awaited_once()
         mock_services.ocr_service.read_many.assert_awaited_once()
 

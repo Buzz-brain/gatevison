@@ -3,7 +3,7 @@ import { ENDPOINTS } from "@/lib/api/endpoints";
 import { normalizeError } from "@/lib/api/errors";
 import { api } from "@/lib/api/axios";
 import type {
-  ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiPipelineStage,
+  ApiPipelineResult, ApiPipelineStatus, ApiPipelineMetrics, ApiPipelineStage, ApiPlateBox,
 } from "@/features/recognition/types/api";
 import type { NormalizedError } from "@/types/api";
 
@@ -18,6 +18,8 @@ interface RawRecognizedPlate {
   plate: string;
   confidence: number;
   validation_status: string;
+  bbox?: number[];
+  detection_confidence?: number;
 }
 
 interface RawFaceRecognition {
@@ -149,6 +151,15 @@ function normalizePipelineResult(raw: RawPipelineData, backendSuccess: boolean):
   });
 
   const plate = raw.recognized_plates?.[0];
+  const plates: ApiPlateBox[] = (raw.recognized_plates ?? [])
+    .filter((p) => Array.isArray(p.bbox) && p.bbox.length >= 4)
+    .map((p) => ({
+      plate: p.plate,
+      confidence: p.confidence,
+      validation_status: p.validation_status,
+      bbox: p.bbox!,
+      detection_confidence: p.detection_confidence ?? 0,
+    }));
   const faceRaw = raw.face_recognitions?.[0];
   const fingerprint = raw.vehicle_fingerprints?.[0];
   const gate = mapGate(raw.gate_workflow_result);
@@ -183,6 +194,7 @@ function normalizePipelineResult(raw: RawPipelineData, backendSuccess: boolean):
     } : null,
     cropped_face: null,
     plate_detection: null,
+    plates,
     ocr: plate ? {
       raw_text: plate.plate,
       cleaned_text: plate.plate,

@@ -100,6 +100,7 @@ class FaceRecognitionService:
 
             detections.append({
                 "bbox": bbox,
+                "landmarks": landmarks,
                 "confidence": face["confidence"],
                 "cropped_face_path": face.get("cropped_face_path", ""),
                 "embedding": emb_result["embedding"],
