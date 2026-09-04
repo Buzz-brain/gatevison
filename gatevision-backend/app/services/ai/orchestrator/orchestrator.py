@@ -27,6 +27,7 @@ from app.services.ai.vehicle_fingerprint.fingerprint_service import (
     VehicleFingerprintService,
 )
 from app.services.decision.decision_engine import DecisionEngine
+from app.services.admin.manual_review_service import ManualReviewService
 from app.services.gate.workflow_service import WorkflowService
 from app.services.ai.orchestrator.execution_logger import PipelineLogger
 from app.services.ai.orchestrator.metrics import get_pipeline_metrics
@@ -866,6 +867,27 @@ class PipelineOrchestrator:
             await DecisionRepository.create(record)
         except Exception as e:
             context.add_warning("decision_persist", str(e))
+
+        if decision.get("decision") == "MANUAL_REVIEW":
+            try:
+                plate = ""
+                recognized = self._build_recognized_plates(context)
+                if recognized:
+                    plate = max(
+                        recognized,
+                        key=lambda r: r.get("confidence", 0),
+                    ).get("plate", "")
+                review = await ManualReviewService().create_review(
+                    request_id=context.request_id or "pipeline",
+                    vehicle_id=plate or context.request_id or "vehicle",
+                    notes=decision.get("explanation", "") or None,
+                )
+                logger.info(
+                    "Manual review queued | review=%s vehicle=%s request_id=%s",
+                    getattr(review, "review_id", "?"), plate, context.request_id,
+                )
+            except Exception as e:
+                context.add_warning("manual_review_queue", str(e))
 
     async def _process_gate_workflow(self, context: PipelineContext) -> None:
         if not context.finalize:

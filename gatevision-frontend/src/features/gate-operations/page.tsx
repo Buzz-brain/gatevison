@@ -1,9 +1,7 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
-import { RefreshCw, Play, CheckCircle2, Loader2 } from "lucide-react";
+import { useMemo } from "react";
+import { RefreshCw } from "lucide-react";
 import { PageContainer, SectionHeader } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useUIStore } from "@/store/ui-store";
 import { useGateOperations } from "./hooks/use-gate-operations";
 import { VehiclesInside } from "./components/vehicles-inside";
 import { SessionMonitor } from "./components/session-monitor";
@@ -19,37 +17,6 @@ function SectionTitle({ children, hint }: { children: React.ReactNode; hint?: st
 
 function GateOperationsPage() {
   const ops = useGateOperations();
-  const addNotification = useUIStore((s) => s.addNotification);
-
-  const [demoRunning, setDemoRunning] = useState(false);
-  const [demoComplete, setDemoComplete] = useState(false);
-  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const runDemo = useCallback(() => {
-    if (demoRunning) return;
-    setDemoRunning(true);
-    setDemoComplete(false);
-    ops.triggerDecision();
-    exitTimer.current = setTimeout(() => {
-      ops.triggerExit();
-    }, 7000);
-    doneTimer.current = setTimeout(() => {
-      setDemoRunning(false);
-      setDemoComplete(true);
-      addNotification({
-        type: "success",
-        category: "recognition",
-        title: "Demo completed successfully",
-        description: "Entry and exit flow simulated end-to-end through the live gate workflow.",
-      });
-    }, 16000);
-  }, [demoRunning, ops, addNotification]);
-
-  useEffect(() => () => {
-    if (exitTimer.current) clearTimeout(exitTimer.current);
-    if (doneTimer.current) clearTimeout(doneTimer.current);
-  }, []);
 
   const hasData = useMemo(
     () => ops.gates.length > 0 || ops.sessions.length > 0,
@@ -92,40 +59,25 @@ function GateOperationsPage() {
         title="Gate Operations"
         description="Operator console — live vehicle entry and exit control"
         action={
-          <div className="flex items-center gap-2">
-            {ops.isError && (
-              <button onClick={ops.refetchAll} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                <RefreshCw className="h-3 w-3" /> Retry
-              </button>
-            )}
-            {demoRunning ? (
-              <span className="flex items-center gap-2 rounded-full bg-info/10 px-3 py-1.5 text-xs font-medium text-info">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Demo Running
-              </span>
-            ) : demoComplete ? (
-              <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Demo Completed Successfully
-              </span>
-            ) : (
-              <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-success" /> LIVE
-              </span>
-            )}
-            <Button size="sm" onClick={runDemo} disabled={demoRunning}>
-              <Play className="mr-1.5 h-3.5 w-3.5" />
-              Run Demo
-            </Button>
-          </div>
+          ops.isError ? (
+            <button onClick={ops.refetchAll} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              <RefreshCw className="h-3 w-3" /> Retry
+            </button>
+          ) : (
+            <span className="flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-success" /> LIVE
+            </span>
+          )
         }
       />
 
-      {/* 1. Occupancy */}
+      {/* Occupancy */}
       <section>
         <SectionTitle>Occupancy</SectionTitle>
         <VehiclesInside sessions={ops.sessions} />
       </section>
 
-      {/* 2. Active Sessions */}
+      {/* Active Sessions */}
       <section>
         <SectionTitle>Active Sessions</SectionTitle>
         <SessionMonitor sessions={ops.sessions} />

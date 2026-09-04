@@ -154,6 +154,18 @@ class SessionVerificationService:
             )
 
         if self._require_face and not face_captured:
+            face_present = (
+                face_matched is not None
+                or face_similarity is not None
+                or face_embedding is not None
+            )
+            if face_present:
+                reason = (
+                    f"Face detected but quality too low to verify "
+                    f"(confidence {face_conf:.0%}, min {self._face_min:.0%}); manual review required"
+                )
+            else:
+                reason = "No face captured in the image; manual review required"
             return SessionVerificationResult(
                 plate_found=True,
                 plate_text=plate_text,
@@ -164,7 +176,7 @@ class SessionVerificationService:
                 vehicle_confidence=vehicle_conf,
                 capture_confidence=capture_confidence,
                 decision="MANUAL_REVIEW",
-                reason="Face not captured; manual review required",
+                reason=reason,
                 triggered_rules=rules,
             )
 

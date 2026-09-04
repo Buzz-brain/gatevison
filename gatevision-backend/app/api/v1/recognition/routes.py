@@ -1,5 +1,6 @@
 import logging
 import math
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -72,6 +73,15 @@ async def _driver_label(driver_id: Optional[str]) -> Optional[str]:
     return driver_id
 
 
+def _fallback_driver_id(plate: str, record) -> str:
+    """Auto-generate a deterministic driver ID from the plate + capture time
+    when no enrolled/matchable driver exists (instead of 'Unknown driver')."""
+    base = "".join(ch for ch in (plate or "").upper() if ch.isalnum()) or "UNK"
+    ts = getattr(record, "created_at", None) or datetime.utcnow()
+    stamp = ts.strftime("%y%m%d-%H%M%S")
+    return f"DRV-{base}-{stamp}"
+
+
 async def _session_for_txn(txn):
     if not txn.session_id:
         return None
@@ -100,13 +110,13 @@ async def _history_item(record) -> dict:
         vehicle = await _vehicle_label(txn.vehicle_id, plate)
         driver = (
             await _driver_label(txn.driver_id)
-            if txn.driver_id else "Unknown driver"
+            if txn.driver_id else _fallback_driver_id(plate, record)
         )
         confidence = _entry_confidence_percent(session)
         direction = "exit" if str(txn.action).upper() == "EXIT" else "entry"
     else:
         vehicle = plate or "Unknown"
-        driver = "Unknown driver"
+        driver = _fallback_driver_id(plate, record)
         confidence = round(record.overall_confidence * 100.0, 1)
         direction = (
             "exit" if str(record.direction).lower() == "exit" else "entry"
@@ -372,7 +382,7 @@ async def recognition_result(pipeline_id: str = Query(...)):
     confidence = _entry_confidence_percent(session) / 100.0
     decision_ui = _map_decision(txn.decision)
     vehicle = await _vehicle_label(txn.vehicle_id, plate)
-    driver = await _driver_label(txn.driver_id) or ""
+    driver = (await _driver_label(txn.driver_id)) or _fallback_driver_id(plate, txn)
 
     stages = [
         {"stage": "vehicle_detection", "status": "inactive", "progress": 0,

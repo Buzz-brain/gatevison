@@ -167,8 +167,10 @@ function buildFinaleSteps(
     decisionSpoken = "Access denied. Please do not proceed.";
     decisionSound = "deny";
   } else {
-    decisionText = "Manual review required. Please wait for the operator.";
-    decisionSpoken = "Manual review required. Please wait for the operator.";
+    const reviewReason = (api.decision?.reason || api.decision?.explanation || "")
+      .trim();
+    decisionText = reviewReason || "Please wait for the operator.";
+    decisionSpoken = "Please wait for the operator.";
     decisionSound = "deny";
   }
 
@@ -494,6 +496,27 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         return;
       }
 
+      if (kind === "face") {
+        const faceMismatch =
+          api.decision?.decision === "denied" &&
+          (api.gate?.match?.face_mismatch === true ||
+            (api.gate?.error ?? "").toLowerCase().includes("face"));
+        if (faceMismatch && attemptsRef.current < MAX_FACE_ATTEMPTS) {
+          journeySeqRef.current++;
+          attemptsRef.current += 1;
+          setAttempts(attemptsRef.current);
+          setFacePreviewUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+          });
+          setPhase("face_scan");
+          const msg = `That didn't match. Let's try your face one more time. (Attempt ${attemptsRef.current} of ${MAX_FACE_ATTEMPTS})`;
+          setNarrative(msg);
+          speak("That did not match. Please try your face one more time.", mutedRef.current);
+          return;
+        }
+      }
+
       setPhase("complete");
       const mapped = mapPipelineResult(api);
       if (pending) pendingVehicleRef.current = null;
@@ -722,13 +745,15 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
   }, [previewUrl, facePreviewUrl, checkPendingVehicle]);
 
   const outcomeColor =
-    phase === "complete" && faceDenied
-      ? "danger"
-      : phase === "complete" && apiResult?.decision?.decision === "granted" && apiResult.gate?.success !== false
-        ? "success"
-        : phase === "complete" && (apiResult?.decision?.decision === "denied" || apiResult?.gate?.success === false)
-          ? "danger"
-          : "warning";
+    phase === "complete" && apiResult?.decision?.decision === "manual_review"
+      ? "warning"
+      : phase === "complete" && faceDenied
+        ? "danger"
+        : phase === "complete" && apiResult?.decision?.decision === "granted" && apiResult.gate?.success !== false
+          ? "success"
+          : phase === "complete" && (apiResult?.decision?.decision === "denied" || apiResult?.gate?.success === false)
+            ? "danger"
+            : "warning";
 
   return (
     <motion.div
@@ -904,18 +929,21 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
                 <Upload className="h-5 w-5" />
                 Upload Image
               </Button>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={handleSendToDevice}
-                disabled={createPendingMutation.isPending}
-                className="h-12 px-7 text-base gap-2"
-                title="Record this vehicle and complete identity on another device (hybrid hand-off)"
-              >
-                {createPendingMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}
-                {createPendingMutation.isPending ? "Recording..." : "Send to Other Device"}
-              </Button>
             </>
+          )}
+
+          {phase === "welcome" && (
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={handleSendToDevice}
+              disabled={createPendingMutation.isPending}
+              className="h-12 px-7 text-base gap-2"
+              title="Record this vehicle and complete identity on another device (hybrid hand-off)"
+            >
+              {createPendingMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RotateCcw className="h-5 w-5" />}
+              {createPendingMutation.isPending ? "Recording..." : "Send to Other Device"}
+            </Button>
           )}
 
           {phase === "vehicle_ready" && (
@@ -923,6 +951,10 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
               <Button size="lg" onClick={handleFaceCapture} className="h-12 px-7 text-base gap-2">
                 <Camera className="h-5 w-5" />
                 Scan Face Here
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => { primeAudio(); fileInputRef.current?.click(); }} className="h-12 px-7 text-base gap-2">
+                <Upload className="h-5 w-5" />
+                Upload a Photo of My Face
               </Button>
               <Button
                 size="lg"
@@ -1030,27 +1062,68 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
             </div>
             <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Face</p>
-              <p className="mt-0.5 text-xl font-bold">
-                {faceDenied ? "Not verified" : !requireFace ? "Not required" : apiResult.face?.detected ? "Captured" : "Not captured"}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {faceDenied
-                  ? "Could not capture after retries"
-                  : !requireFace
-                    ? "Face not part of this check"
-                    : apiResult.face?.match_source === "session" && apiResult.face?.similarity
-                      ? `${apiResult.face.similarity.toFixed(0)}% match with entry driver`
-                      : apiResult.face?.similarity
-                        ? `${apiResult.face.similarity.toFixed(0)}% match`
-                        : apiResult.gate?.success === false && apiResult.gate?.error
-                          ? apiResult.gate.error
-                          : "No match data"}
-              </p>
+              {phase === "vehicle_ready" ? (
+                <>
+                  <p className="mt-0.5 text-xl font-bold text-muted-foreground/60">Awaiting scan</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Complete identity on the next step</p>
+                </>
+              ) : (
+                <>
+                  {(() => {
+                    const reason = apiResult.decision?.reason ?? "";
+                    const faceUnusable =
+                      apiResult.decision?.decision === "manual_review" &&
+                      /face/i.test(reason) &&
+                      /not captured|no face|quality|low|below/i.test(reason);
+                    return (
+                      <>
+                        <p className="mt-0.5 text-xl font-bold">
+                          {faceDenied
+                            ? "Not verified"
+                            : !requireFace
+                              ? "Not required"
+                              : !apiResult.face?.detected
+                                ? "Not captured"
+                                : faceUnusable
+                                  ? "Not captured"
+                                  : "Captured"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {faceDenied
+                            ? "Could not capture after retries"
+                            : !requireFace
+                              ? "Face not part of this check"
+                              : faceUnusable
+                                ? reason
+                                : apiResult.face?.match_source === "session" && apiResult.face?.similarity
+                                  ? `${apiResult.face.similarity.toFixed(0)}% match with entry driver`
+                                  : apiResult.face?.similarity
+                                    ? `${apiResult.face.similarity.toFixed(0)}% match`
+                                    : apiResult.gate?.success === false && apiResult.gate?.error
+                                      ? apiResult.gate.error
+                                      : direction === "entry"
+                                        ? "Face captured — no record to compare on entry"
+                                        : "No comparable identity stored for this exit"}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </>
+              )}
             </div>
             <div className="rounded-2xl border border-border bg-elevated/60 p-4 text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">Recommended</p>
-              <p className="mt-0.5 text-lg font-bold">{result.decision.recommendedAction}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Attempt {Math.max(attempts, 1)}</p>
+              {phase === "vehicle_ready" ? (
+                <>
+                  <p className="mt-0.5 text-lg font-bold text-muted-foreground/60">Pending identity</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Vehicle verified — scan face to continue</p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-0.5 text-lg font-bold">{result.decision.recommendedAction}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Attempt {Math.max(attempts, 1)}</p>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -1087,7 +1160,7 @@ function LiveGateOverlay({ onClose, direction, requireFace }: LiveGateOverlayPro
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) {
-            if (phaseRef.current === "face_scan" || phaseRef.current === "face_validating") handleFaceUpload(f);
+            if (phaseRef.current === "face_scan" || phaseRef.current === "face_validating" || phaseRef.current === "vehicle_ready") handleFaceUpload(f);
             else handleUpload(f);
           }
           e.target.value = "";
